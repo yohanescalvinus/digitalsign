@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generate Digital Signature</title>
+<style>
+  :root {
+    --bg: #f0f2f5; --card: #ffffff; --text: #222; --text-muted: #666;
+    --label: #333; --border: #ccc; --border-light: #ddd; --input-bg: #fff;
+    --primary: #0b5ed7; --primary-hover: #0a4fb8;
+    --secondary: #6c757d; --secondary-hover: #565e64;
+    --success: #198754; --success-bg: #e7f8ee;
+    --danger: #dc3545; --error-bg: #ffe7e7;
+    --info-bg: #e7f5ff; --warn-bg: #fff3cd; --warn-text: #856404;
+    --warn-border: #ffc107; --shadow: rgba(0,0,0,0.1);
+    --preview-bg: #f8f9ff; --preview-border: #0b5ed7;
+  }
+  [data-theme="dark"] {
+    --bg: #121212; --card: #1e1e1e; --text: #e8e8e8; --text-muted: #999;
+    --label: #ccc; --border: #444; --border-light: #3a3a3a; --input-bg: #2a2a2a;
+    --primary: #4d9fff; --primary-hover: #3a8ce6;
+    --secondary: #555; --secondary-hover: #666;
+    --success: #2ea66d; --success-bg: #1a3d2c;
+    --danger: #ef5350; --error-bg: #4a1f1f;
+    --info-bg: #1a3a52; --warn-bg: #4a3a1a; --warn-text: #ffcc66;
+    --warn-border: #cc9900; --shadow: rgba(0,0,0,0.5);
+    --preview-bg: #1a2a3d; --preview-border: #4d9fff;
+  }
+  * { box-sizing: border-box; transition: background-color 0.25s, color 0.25s, border-color 0.25s; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: var(--bg); color: var(--text);
+    margin: 0; padding: 20px;
+    display: flex; justify-content: center; min-height: 100vh;
+  }
+  .container {
+    background: var(--card); padding: 30px; border-radius: 12px;
+    box-shadow: 0 4px 20px var(--shadow);
+    max-width: 560px; width: 100%;
+  }
+  h1 { font-size: 20px; margin-top: 0; }
+  h2 { font-size: 16px; margin-top: 0; color: var(--primary); }
+  .row { margin-bottom: 14px; }
+  label { display: block; font-weight: 600; margin-bottom: 5px; color: var(--label); font-size: 13px; }
+  input, textarea {
+    width: 100%; padding: 9px 10px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 14px; font-family: inherit;
+    background: var(--input-bg); color: var(--text);
+  }
+  input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+  textarea { resize: vertical; }
+  button {
+    background: var(--primary); color: #fff; border: none;
+    padding: 11px 18px; border-radius: 6px;
+    font-size: 14px; cursor: pointer; font-weight: 600;
+    margin-right: 8px; margin-top: 4px;
+  }
+  button:hover { background: var(--primary-hover); }
+  button.secondary { background: var(--secondary); }
+  button.secondary:hover { background: var(--secondary-hover); }
+  #preview {
+    margin-top: 20px; padding: 20px;
+    border: 2px dashed var(--preview-border); border-radius: 10px;
+    background: var(--preview-bg); display: none; text-align: center;
+  }
+  #qrcode { display: inline-block; padding: 10px; background: #fff; border-radius: 8px; }
+  #qrcode img, #qrcode canvas { display: block; }
+  .info-line { margin: 6px 0; font-size: 14px; text-align: left; }
+  .info-line b { display: inline-block; width: 90px; vertical-align: top; }
+  .info-line span { display: inline-block; max-width: 380px; word-break: break-word; }
+  .encrypted-box {
+    margin-top: 12px; background: var(--input-bg);
+    border: 1px solid var(--border-light);
+    padding: 8px; border-radius: 6px;
+    font-family: monospace; font-size: 10px;
+    word-break: break-all; color: var(--text-muted);
+    max-height: 80px; overflow: auto; text-align: left;
+  }
+  .pw-wrap { position: relative; }
+  .pw-toggle {
+    position: absolute; right: 10px; top: 50%;
+    transform: translateY(-50%); cursor: pointer; font-size: 16px;
+    user-select: none; color: var(--text-muted);
+    background: none; padding: 4px; border: none; margin: 0;
+    width: auto; height: auto;
+  }
+  .pw-toggle:hover { background: none; }
+  .lock-indicator {
+    font-size: 11px; margin-top: 6px; padding: 6px 10px;
+    border-radius: 6px; border-left: 3px solid;
+    background: var(--warn-bg); color: var(--warn-text);
+    border-left-color: var(--warn-border);
+  }
+  .lock-indicator.weak { background: var(--error-bg); color: var(--danger); border-left-color: var(--danger); }
+  .lock-indicator.medium { background: var(--info-bg); color: var(--primary); border-left-color: var(--primary); }
+  .lock-indicator.strong { background: var(--success-bg); color: var(--success); border-left-color: var(--success); }
+  .theme-toggle {
+    position: fixed; top: 20px; right: 20px; z-index: 999;
+    width: 46px; height: 46px; border-radius: 50%;
+    background: var(--card); color: var(--text);
+    border: 2px solid var(--border);
+    box-shadow: 0 4px 12px var(--shadow);
+    cursor: pointer; font-size: 20px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0; margin: 0;
+  }
+  .theme-toggle:hover { transform: scale(1.1); background: var(--card); }
+  #status { margin-top: 10px; font-size: 12px; padding: 6px 10px; border-radius: 6px; display: none; }
+  #status.ok { background: var(--success-bg); color: var(--success); display: block; }
+  #status.err { background: var(--error-bg); color: var(--danger); display: block; }
+  .note { font-size: 12px; color: var(--text-muted); margin-top: 15px; }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙</button>
+
+<div class="container">
+  <h1>🔏 Generate Digital Signature</h1>
+  <p class="note" style="margin-top:0;">Buat tanda tangan digital — hasilkan QR Code terenkripsi.</p>
+
+  <div id="status"></div>
+
+  <div class="row">
+    <label>Nama</label>
+    <input type="text" id="nama" placeholder="Contoh: Budi Santoso" />
+  </div>
+  <div class="row">
+    <label>Institusi</label>
+    <input type="text" id="institusi" placeholder="Contoh: PT Maju Jaya" />
+  </div>
+  <div class="row">
+    <label>Jabatan</label>
+    <input type="text" id="jabatan" placeholder="Contoh: Direktur" />
+  </div>
+  <div class="row">
+    <label>Tanggal</label>
+    <input type="date" id="tanggal" />
+  </div>
+  <div class="row">
+    <label>🔑 Password <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(opsional — untuk mengunci dokumen)</span></label>
+    <div class="pw-wrap">
+      <input type="password" id="secret" placeholder="Masukkan password untuk mengunci dokumen digital sign Anda!"
+             oninput="updateLockIndicator('secret', 'lockIndicator')" />
+      <button type="button" class="pw-toggle" onclick="togglePassword('secret', this)">👁️</button>
+    </div>
+    <div id="lockIndicator" class="lock-indicator"></div>
+  </div>
+  <div class="row">
+    <label>📝 Pesan Singkat</label>
+    <textarea id="pesan" rows="2" maxlength="200" placeholder="Contoh: Dokumen ini sah dan telah disetujui."></textarea>
+  </div>
+
+  <button onclick="generateSignature()">🔏 Generate QR</button>
+  <button class="secondary" onclick="downloadPNG()">⬇️ Download PNG</button>
+  <button class="secondary" onclick="copyPayload()">📋 Copy Payload</button>
+
+  <div id="preview">
+    <h2>✅ Tanda Tangan Digital</h2>
+    <div id="qrcode"></div>
+    <div class="info-line"><b>Nama</b>: <span id="p-nama"></span></div>
+    <div class="info-line"><b>Institusi</b>: <span id="p-institusi"></span></div>
+    <div class="info-line"><b>Jabatan</b>: <span id="p-jabatan"></span></div>
+    <div class="info-line"><b>Tanggal</b>: <span id="p-tanggal"></span></div>
+    <div class="info-line"><b>Pesan</b>: <span id="p-pesan"></span></div>
+    <div class="info-line"><b>Status</b>: <span id="p-status-kunci"></span></div>
+    <div class="encrypted-box">
+      <b>Payload terenkripsi (AES):</b><br/>
+      <span id="p-encrypted"></span>
+    </div>
+  </div>
+
+  <p class="note">* Simpan QR Code + informasikan password ke penerima untuk verifikasi di aplikasi <b>verify.html</b>.</p>
+</div>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script src="crypto-js.min.js"></script>
+<script src="qrcode.min.js"></script>
+
+<script>
+/* ============ KONSTANTA ============ */
+const DEFAULT_SECRET = 'DIGITAL-SIGNATURE-DEFAULT-KEY-2024';
+
+/* ============ TEMA ============ */
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('themeBtn');
+  if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('theme', theme);
+}
+function toggleTheme() {
+  const cur = document.documentElement.getAttribute('data-theme') || 'light';
+  applyTheme(cur === 'dark' ? 'light' : 'dark');
+}
+(function () {
+  const saved = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', saved);
+  window.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('themeBtn');
+    if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+  });
+})();
+
+/* ============ PASSWORD HELPERS ============ */
+function togglePassword(id, btn) {
+  const i = document.getElementById(id);
+  if (i.type === 'password') { i.type = 'text'; btn.textContent = '🙈'; }
+  else { i.type = 'password'; btn.textContent = '👁️'; }
+}
+function updateLockIndicator(inputId, indicatorId) {
+  const val = document.getElementById(inputId).value.trim();
+  const el = document.getElementById(indicatorId);
+  el.classList.remove('weak', 'medium', 'strong');
+  if (val.length === 0) {
+    el.innerHTML = '⚠️ Kosong — dokumen <b>TIDAK terkunci</b>. Siapa pun bisa membaca isi QR.';
+  } else if (val.length < 6) {
+    el.classList.add('weak');
+    el.innerHTML = '🔓 Password <b>lemah</b> — minimal 8 karakter disarankan.';
+  } else if (val.length < 10) {
+    el.classList.add('medium');
+    el.innerHTML = '🔐 Password cukup kuat.';
+  } else {
+    el.classList.add('strong');
+    el.innerHTML = '🔒 Password kuat — dokumen aman terkunci.';
+  }
+}
+
+/* ============ INIT ============ */
+window.addEventListener('DOMContentLoaded', function () {
+  const status = document.getElementById('status');
+  const checks = [
+    { name: 'CryptoJS', ok: typeof CryptoJS !== 'undefined' },
+    { name: 'QRCode',   ok: typeof QRCode !== 'undefined' }
+  ];
+  const gagal = checks.filter(c => !c.ok);
+  if (gagal.length === 0) {
+    status.className = 'ok';
+    status.textContent = '✅ Siap digunakan';
+    setTimeout(() => status.style.display = 'none', 3000);
+  } else {
+    status.className = 'err';
+    status.innerHTML = '❌ Library gagal dimuat: <b>' + gagal.map(c => c.name).join(', ') + '</b>';
+  }
+  document.getElementById('tanggal').valueAsDate = new Date();
+  updateLockIndicator('secret', 'lockIndicator');
+});
+
+/* ============ GENERATE ============ */
+function generateSignature() {
+  try {
+    const nama      = document.getElementById('nama').value.trim();
+    const institusi = document.getElementById('institusi').value.trim();
+    const jabatan   = document.getElementById('jabatan').value.trim();
+    const tanggal   = document.getElementById('tanggal').value;
+    const secretRaw = document.getElementById('secret').value;
+    const pesan     = document.getElementById('pesan').value.trim();
+
+    if (!nama || !institusi || !jabatan || !tanggal) {
+      alert('Mohon lengkapi semua data!'); return;
+    }
+    if (typeof CryptoJS === 'undefined' || typeof QRCode === 'undefined') {
+      alert('Library belum siap.'); return;
+    }
+
+    const locked = secretRaw.trim().length > 0;
+
+    if (!locked) {
+      const ok = confirm(
+        '⚠️ Anda belum memasukkan password.\n\n' +
+        'Dokumen akan ditandatangani TANPA kunci.\n' +
+        'Siapa pun yang punya file ini bisa membacanya.\n\n' +
+        'Lanjutkan?'
+      );
+      if (!ok) {
+        const i = document.getElementById('secret');
+        i.focus();
+        i.style.borderColor = '#dc3545';
+        setTimeout(() => i.style.borderColor = '', 2000);
+        return;
+      }
+    }
+
+    const secret = locked ? secretRaw.trim() : DEFAULT_SECRET;
+
+    const payload = JSON.stringify({
+      nama, institusi, jabatan, tanggal,
+      pesan: pesan || '',
+      locked: locked,
+      ts: Date.now()
+    });
+    const encrypted = CryptoJS.AES.encrypt(payload, secret).toString();
+
+    const qrContainer = document.getElementById('qrcode');
+    qrContainer.innerHTML = '';
+    new QRCode(qrContainer, {
+      text: encrypted, width: 280, height: 280,
+      colorDark: '#000000', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+
+    document.getElementById('p-nama').textContent      = nama;
+    document.getElementById('p-institusi').textContent = institusi;
+    document.getElementById('p-jabatan').textContent   = jabatan;
+    document.getElementById('p-tanggal').textContent   = tanggal;
+    document.getElementById('p-pesan').textContent     = pesan || '(tidak ada)';
+    document.getElementById('p-encrypted').textContent = encrypted;
+
+    document.getElementById('p-status-kunci').innerHTML = locked
+      ? '<span style="color:var(--success);">🔒 Terkunci dengan password</span>'
+      : '<span style="color:var(--warn-text);">⚠️ Tidak terkunci</span>';
+
+    document.getElementById('preview').style.display = 'block';
+  } catch (err) {
+    console.error(err);
+    alert('Error: ' + err.message);
+  }
+}
+
+/* ============ DOWNLOAD PNG ============ */
+function downloadPNG() {
+  const qrEl = document.querySelector('#qrcode canvas') || document.querySelector('#qrcode img');
+  if (!qrEl) { alert('Generate QR dulu.'); return; }
+
+  const qrWidth  = qrEl.width  || qrEl.naturalWidth  || 280;
+  const qrHeight = qrEl.height || qrEl.naturalHeight || 280;
+  const padding = 25, textHeight = 195;
+
+  const canvas = document.getElementById('canvas');
+  canvas.width  = Math.max(qrWidth + padding * 2, 340);
+  canvas.height = qrHeight + textHeight + padding * 2;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#000';
+  ctx.font = 'bold 15px Arial';
+  ctx.fillText('DIGITAL SIGNATURE', padding, 28);
+  ctx.font = '13px Arial';
+
+  const statusText = document.getElementById('p-status-kunci').textContent.trim();
+  const lines = [
+    'Nama      : ' + document.getElementById('p-nama').textContent,
+    'Institusi : ' + document.getElementById('p-institusi').textContent,
+    'Jabatan   : ' + document.getElementById('p-jabatan').textContent,
+    'Tanggal   : ' + document.getElementById('p-tanggal').textContent,
+  ];
+  const maxWidth = canvas.width - padding * 2;
+  function wrap(text, indent) {
+    const words = text.split(' ');
+    let cur = '', out = [];
+    for (const w of words) {
+      const t = cur ? cur + ' ' + w : w;
+      if (ctx.measureText(t).width > maxWidth && cur) {
+        out.push(cur); cur = (indent || '    ') + w;
+      } else cur = t;
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+  lines.push(...wrap('Pesan     : ' + document.getElementById('p-pesan').textContent));
+  lines.push(...wrap('Status    : ' + statusText));
+
+  lines.forEach((l, i) => ctx.fillText(l, padding, 55 + i * 18));
+  const qrY = 55 + lines.length * 18 + 15;
+  ctx.drawImage(qrEl, padding, qrY);
+
+  const link = document.createElement('a');
+  link.download = 'digital-signature-' + Date.now() + '.png';
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+/* ============ COPY PAYLOAD ============ */
+function copyPayload() {
+  const payload = document.getElementById('p-encrypted').textContent.trim();
+  if (!payload) { alert('Generate QR dulu.'); return; }
+  navigator.clipboard.writeText(payload)
+    .then(() => alert('✅ Payload terenkripsi berhasil di-copy ke clipboard.'))
+    .catch(() => alert('Gagal copy. Silakan copy manual dari kotak payload.'));
+}
+</script>
+</body>
+</html>
