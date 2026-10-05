@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Generate Digital Signature</title>
+<title>Generate Digital Signature — Print Ready</title>
 <style>
   :root {
     --bg: #f0f2f5;
@@ -70,14 +70,14 @@
     padding: 30px;
     border-radius: 12px;
     box-shadow: 0 4px 20px var(--shadow);
-    max-width: 560px;
+    max-width: 580px;
     width: 100%;
   }
   h1 { font-size: 20px; margin-top: 0; color: var(--text); }
   .subtitle { color: var(--text-muted); font-size: 13px; margin-top: -8px; margin-bottom: 20px; }
   .row { margin-bottom: 14px; }
   label { display: block; font-weight: 600; margin-bottom: 5px; color: var(--label); font-size: 13px; }
-  input, textarea {
+  input, textarea, select {
     width: 100%;
     padding: 9px 10px;
     border: 1px solid var(--border);
@@ -87,7 +87,7 @@
     background: var(--input-bg);
     color: var(--text);
   }
-  input:focus, textarea:focus { outline: none; border-color: var(--primary); }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); }
   textarea { resize: vertical; }
   button {
     background: var(--primary);
@@ -104,8 +104,19 @@
   button:hover { background: var(--primary-hover); }
   button.secondary { background: var(--secondary); }
   button.secondary:hover { background: var(--secondary-hover); }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  /* ============ PREVIEW: QR + NAMA OVERLAY ============ */
+  /* Grid untuk preset */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 480px) {
+    .grid-2 { grid-template-columns: 1fr; }
+  }
+
+  /* ============ PREVIEW ============ */
   #preview {
     margin-top: 24px;
     padding: 30px 20px;
@@ -123,45 +134,51 @@
 
   #qrWrapper {
     display: inline-block;
-    position: relative;
     padding: 16px;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+    text-align: center;
   }
   #qrcode { display: block; }
   #qrcode img, #qrcode canvas { display: block; }
 
-  /* Nama overlay di tengah QR — 2 baris support, BOLD */
-  #qrNameOverlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: #ffffff;
+  /* Nama di BAWAH QR */
+  #qrNameBelow {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 2px solid #000;
     color: #000000;
-    padding: 8px 14px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 900;              /* ⬅️ extra bold */
-    letter-spacing: 0.4px;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
     text-align: center;
-    line-height: 1.15;
-    max-width: 72%;
-    box-shadow: 0 0 0 4px #fff, 0 4px 12px rgba(0,0,0,0.18);
-    border: 2px solid #000;
-    pointer-events: none;
-    z-index: 2;
+    line-height: 1.2;
     text-transform: uppercase;
     font-family: 'Segoe UI', 'Arial Black', Arial, sans-serif;
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+    word-wrap: break-word;
   }
-  #qrNameOverlay .qr-name-line {
+  #qrNameBelow .qr-name-line {
     display: block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
     font-weight: 900;
   }
+
+  /* Info ukuran */
+  #sizeInfo {
+    margin-top: 18px;
+    padding: 10px 14px;
+    background: var(--info-bg);
+    border-left: 4px solid var(--primary);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--primary);
+    text-align: left;
+    line-height: 1.7;
+  }
+  #sizeInfo b { color: var(--primary); }
 
   /* ============ PASSWORD ============ */
   .pw-wrap { position: relative; }
@@ -229,7 +246,8 @@
   #status.ok { background: var(--success-bg); color: var(--success); display: block; }
   #status.err { background: var(--error-bg); color: var(--danger); display: block; }
 
-  .note { font-size: 12px; color: var(--text-muted); margin-top: 16px; line-height: 1.5; }
+  .note { font-size: 12px; color: var(--text-muted); margin-top: 16px; line-height: 1.6; }
+  .note b { color: var(--text); }
 </style>
 </head>
 <body>
@@ -238,7 +256,7 @@
 
 <div class="container">
   <h1>🔏 Generate Digital Signature</h1>
-  <p class="subtitle">Buat QR Code sebagai tanda tangan digital terenkripsi.</p>
+  <p class="subtitle">QR Code siap cetak · Level L · AES-256 · High-res 600 DPI</p>
 
   <div id="status"></div>
 
@@ -272,22 +290,43 @@
     <textarea id="pesan" rows="2" maxlength="200" placeholder="Contoh: Dokumen ini sah dan telah disetujui."></textarea>
   </div>
 
+  <div class="grid-2">
+    <div class="row">
+      <label>📐 Ukuran Cetak</label>
+      <select id="sizePreset" onchange="onPresetChange()">
+        <option value="2">2 × 2 cm (mini)</option>
+        <option value="3" selected>3 × 3 cm (standar)</option>
+        <option value="4">4 × 4 cm (besar)</option>
+        <option value="5">5 × 5 cm (extra besar)</option>
+      </select>
+    </div>
+    <div class="row">
+      <label>🖨️ Resolusi (DPI)</label>
+      <select id="dpiPreset" onchange="onDpiChange()">
+        <option value="300">300 DPI (standar)</option>
+        <option value="600" selected>600 DPI (high quality)</option>
+        <option value="1200">1200 DPI (extra high)</option>
+      </select>
+    </div>
+  </div>
+
   <button onclick="generateSignature()">🔏 Generate QR</button>
   <button class="secondary" onclick="downloadPNG()">⬇️ Download PNG</button>
   <button class="secondary" onclick="copyPayload()">📋 Copy Payload</button>
 
-  <!-- PREVIEW: QR + NAMA OVERLAY -->
+  <!-- PREVIEW -->
   <div id="preview">
     <div id="qrWrapper">
       <div id="qrcode"></div>
-      <div id="qrNameOverlay"></div>
+      <div id="qrNameBelow"></div>
     </div>
+    <div id="sizeInfo"></div>
   </div>
 
   <p class="note">
-    * Semua informasi tersimpan <b>di dalam QR Code</b> dalam bentuk terenkripsi AES-256.<br/>
-    * File PNG disimpan dengan nama tanggal tanda tangan.<br/>
-    * Untuk verifikasi, buka aplikasi <b>verify.html</b> dan scan QR Code.
+    * QR Code pakai <b>Error Correction Level L</b> — grid paling besar, mudah discan.<br/>
+    * PNG di-export dengan <b>metadata DPI</b> sesuai pilihan — saat di-insert ke Word/PDF, ukurannya otomatis sesuai ukuran cetak.<br/>
+    * Semua informasi tersimpan <b>di dalam QR Code</b> dalam bentuk terenkripsi AES-256.
   </p>
 </div>
 
@@ -299,6 +338,11 @@
 <script>
 /* ============ KONSTANTA ============ */
 const DEFAULT_SECRET = 'DIGITAL-SIGNATURE-DEFAULT-KEY-2024';
+
+/* ============ STATE ============ */
+let currentQrSizeCm = 3;      // default 3 cm
+let DPI = 600;                // default 600 DPI
+let currentQrSizePx = 712;    // 3 cm × 600 DPI / 2.54 ≈ 709 → dibulatkan 712
 
 /* ============ TEMA ============ */
 function applyTheme(theme) {
@@ -319,6 +363,30 @@ function toggleTheme() {
     if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
   });
 })();
+
+/* ============ PRESET SIZE & DPI ============ */
+function recalcSize() {
+  // Convert cm ke pixel: px = cm ÷ 2.54 × DPI
+  currentQrSizePx = Math.round((currentQrSizeCm / 2.54) * DPI);
+  // Bulatkan ke kelipatan 4 supaya modul QR rapi
+  currentQrSizePx = Math.round(currentQrSizePx / 4) * 4;
+}
+
+function onPresetChange() {
+  currentQrSizeCm = parseInt(document.getElementById('sizePreset').value, 10) || 3;
+  recalcSize();
+  if (document.getElementById('preview').style.display === 'block') {
+    generateSignature();
+  }
+}
+
+function onDpiChange() {
+  DPI = parseInt(document.getElementById('dpiPreset').value, 10) || 600;
+  recalcSize();
+  if (document.getElementById('preview').style.display === 'block') {
+    generateSignature();
+  }
+}
 
 /* ============ PASSWORD HELPERS ============ */
 function togglePassword(id, btn) {
@@ -351,14 +419,12 @@ function splitNameIntoLines(nama, maxCharsPerLine) {
   const clean = nama.trim().replace(/\s+/g, ' ');
   if (!clean) return ['', ''];
 
-  // Cukup 1 baris?
   if (clean.length <= maxCharsPerLine) {
     return [clean, ''];
   }
 
   const words = clean.split(' ');
 
-  // Kalau cuma 1 kata panjang → potong 2 baris
   if (words.length === 1) {
     const line1 = clean.substring(0, maxCharsPerLine);
     const rest = clean.substring(maxCharsPerLine);
@@ -369,7 +435,6 @@ function splitNameIntoLines(nama, maxCharsPerLine) {
     }
   }
 
-  // Cari titik pemisah optimal (paling dekat tengah)
   const targetMid = clean.length / 2;
   let bestIdx = -1;
   let bestDist = Infinity;
@@ -406,7 +471,7 @@ window.addEventListener('DOMContentLoaded', function () {
   const gagal = checks.filter(c => !c.ok);
   if (gagal.length === 0) {
     status.className = 'ok';
-    status.textContent = '✅ Siap digunakan';
+    status.textContent = '✅ Siap — preset 3×3 cm @ 600 DPI';
     setTimeout(() => status.style.display = 'none', 3000);
   } else {
     status.className = 'err';
@@ -415,10 +480,11 @@ window.addEventListener('DOMContentLoaded', function () {
 
   document.getElementById('tanggal').valueAsDate = new Date();
   updateLockIndicator('secret', 'lockIndicator');
+  recalcSize();
 });
 
 /* =====================================================================
-   GENERATE — QR + NAMA DI TENGAH (MAKS 2 BARIS)
+   GENERATE — QR LEVEL L, SESUAI PRESET
    ===================================================================== */
 function generateSignature() {
   try {
@@ -458,6 +524,7 @@ function generateSignature() {
 
     const secret = locked ? secretRaw.trim() : DEFAULT_SECRET;
 
+    // Payload lengkap → disimpan di dalam QR
     const payload = JSON.stringify({
       nama,
       institusi,
@@ -470,56 +537,63 @@ function generateSignature() {
 
     const encrypted = CryptoJS.AES.encrypt(payload, secret).toString();
 
-    // Render QR — pakai error correction LEVEL H (30%)
+    // Render QR ke DOM — pakai ukuran pixel asli (high-res)
     const qrContainer = document.getElementById('qrcode');
     qrContainer.innerHTML = '';
     new QRCode(qrContainer, {
       text: encrypted,
-      width: 360,
-      height: 360,
+      width: currentQrSizePx,
+      height: currentQrSizePx,
       colorDark: '#000000',
       colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.H   // WAJIB H!
+      correctLevel: QRCode.CorrectLevel.L   // ⬅️ LEVEL L — grid PALING BESAR
     });
 
-    // Tampilkan nama di tengah QR — max 2 baris, bold
-    const overlay = document.getElementById('qrNameOverlay');
-
-    // Tentukan font size + kapasitas karakter per baris
-    let fontSize = 17;
-    let maxCharsPerLine = 18;
-
-    if (nama.length > 36) {
-      fontSize = 12;
-      maxCharsPerLine = 26;
-    } else if (nama.length > 24) {
-      fontSize = 14;
-      maxCharsPerLine = 22;
-    } else if (nama.length > 14) {
-      fontSize = 16;
-      maxCharsPerLine = 20;
+    // Kecilkan tampilan di preview saja (agar tidak terlalu besar di layar)
+    // Ukuran ASLI tetap tersimpan untuk download
+    const previewMaxWidth = Math.min(currentQrSizePx, 320);
+    const canvasEl = qrContainer.querySelector('canvas') || qrContainer.querySelector('img');
+    if (canvasEl) {
+      canvasEl.style.width = previewMaxWidth + 'px';
+      canvasEl.style.height = previewMaxWidth + 'px';
     }
 
-    overlay.style.fontSize = fontSize + 'px';
+    // Render nama di bawah QR
+    const nameEl = document.getElementById('qrNameBelow');
+    let fontSize = 22;
+    if (nama.length > 24) fontSize = 18;
+    if (nama.length > 36) fontSize = 16;
+    if (nama.length > 48) fontSize = 14;
+    nameEl.style.fontSize = fontSize + 'px';
 
+    const maxCharsPerLine = 30;
     const [line1, line2] = splitNameIntoLines(nama, maxCharsPerLine);
 
-    overlay.innerHTML = '';
+    nameEl.innerHTML = '';
     const el1 = document.createElement('span');
     el1.className = 'qr-name-line';
     el1.textContent = line1;
-    overlay.appendChild(el1);
+    nameEl.appendChild(el1);
 
     if (line2) {
       const el2 = document.createElement('span');
       el2.className = 'qr-name-line';
       el2.textContent = line2;
-      overlay.appendChild(el2);
+      nameEl.appendChild(el2);
     }
 
     // Simpan data untuk download/copy
     qrContainer.setAttribute('data-encrypted', encrypted);
     qrContainer.setAttribute('data-tanggal', tanggal);
+
+    // Info ukuran
+    const sizeInfo = document.getElementById('sizeInfo');
+    sizeInfo.innerHTML = `
+      📐 <b>Ukuran cetak: ${currentQrSizeCm}×${currentQrSizeCm} cm</b> @ ${DPI} DPI<br/>
+      📏 PNG: ${currentQrSizePx}×${currentQrSizePx} pixel (QR saja)<br/>
+      🎯 Insert ke Word/PDF → otomatis ${currentQrSizeCm}×${currentQrSizeCm} cm<br/>
+      ✅ Error Correction Level L — grid paling besar, sangat mudah discan
+    `;
 
     document.getElementById('preview').style.display = 'block';
 
@@ -534,25 +608,47 @@ function generateSignature() {
 }
 
 /* =====================================================================
-   DOWNLOAD PNG — QR + NAMA 2 BARIS BOLD
+   DOWNLOAD PNG — QR (HIGH RES) + NAMA, METADATA DPI
    ===================================================================== */
 function downloadPNG() {
-  const qrEl = document.querySelector('#qrcode canvas') || document.querySelector('#qrcode img');
-  if (!qrEl) { alert('Generate QR dulu.'); return; }
-
   const tanggal = document.getElementById('qrcode').getAttribute('data-tanggal');
-  if (!tanggal) { alert('Data tanggal tidak ditemukan. Generate ulang.'); return; }
+  const encrypted = document.getElementById('qrcode').getAttribute('data-encrypted');
+  if (!tanggal || !encrypted) { alert('Generate QR dulu.'); return; }
 
   const nama = document.getElementById('nama').value.trim();
 
-  const qrWidth  = qrEl.width  || qrEl.naturalWidth  || 360;
-  const qrHeight = qrEl.height || qrEl.naturalHeight || 360;
+  // ===== Render QR baru di canvas offscreen dengan ukuran ASLI (high-res) =====
+  const qrRenderCanvas = document.createElement('canvas');
+  qrRenderCanvas.width = currentQrSizePx;
+  qrRenderCanvas.height = currentQrSizePx;
 
-  const padding = 20;
+  const tempDiv = document.createElement('div');
+  new QRCode(tempDiv, {
+    text: encrypted,
+    width: currentQrSizePx,
+    height: currentQrSizePx,
+    colorDark: '#000000',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.L
+  });
+
+  const tempCanvas = tempDiv.querySelector('canvas');
+  if (tempCanvas) {
+    qrRenderCanvas.getContext('2d').drawImage(tempCanvas, 0, 0);
+  } else {
+    // Fallback: pakai QR yang sudah ada
+    const qrEl = document.querySelector('#qrcode canvas') || document.querySelector('#qrcode img');
+    qrRenderCanvas.getContext('2d').drawImage(qrEl, 0, 0, currentQrSizePx, currentQrSizePx);
+  }
+
+  // ===== Hitung ukuran canvas final =====
+  const qrPx = currentQrSizePx;
+  const padding = Math.round(qrPx * 0.06);         // 6% dari QR
+  const nameAreaHeight = Math.round(qrPx * 0.20);  // 20% dari QR untuk nama + garis
 
   const canvas = document.getElementById('canvas');
-  canvas.width  = qrWidth + padding * 2;
-  canvas.height = qrHeight + padding * 2;
+  canvas.width  = qrPx + padding * 2;
+  canvas.height = qrPx + nameAreaHeight + padding * 2;
 
   const ctx = canvas.getContext('2d');
 
@@ -561,96 +657,145 @@ function downloadPNG() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Gambar QR
-  ctx.drawImage(qrEl, padding, padding);
+  ctx.drawImage(qrRenderCanvas, padding, padding, qrPx, qrPx);
 
-  // Gambar nama di tengah QR
-  const qrCenterX = padding + qrWidth / 2;
-  const qrCenterY = padding + qrHeight / 2;
+  // Garis pemisah (border top nama)
+  const lineY = padding + qrPx + Math.round(padding * 0.6);
+  ctx.strokeStyle = '#000000';
+  ctx.lineWidth = Math.max(2, Math.round(qrPx * 0.006));
+  ctx.beginPath();
+  ctx.moveTo(padding, lineY);
+  ctx.lineTo(canvas.width - padding, lineY);
+  ctx.stroke();
 
-  // Font size + kapasitas karakter (SAMA dengan preview)
-  let fontSize = 21;
-  let maxCharsPerLine = 18;
-
-  if (nama.length > 36) {
-    fontSize = 15;
-    maxCharsPerLine = 26;
-  } else if (nama.length > 24) {
-    fontSize = 17;
-    maxCharsPerLine = 22;
-  } else if (nama.length > 14) {
-    fontSize = 19;
-    maxCharsPerLine = 20;
-  }
+  // Nama di bawah QR — font proporsional
+  let fontSize = Math.round(qrPx * 0.075);
+  if (nama.length > 24) fontSize = Math.round(qrPx * 0.060);
+  if (nama.length > 36) fontSize = Math.round(qrPx * 0.050);
+  if (nama.length > 48) fontSize = Math.round(qrPx * 0.042);
 
   const fontStr = '900 ' + fontSize + 'px "Segoe UI", "Arial Black", Arial, sans-serif';
   ctx.font = fontStr;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
+  ctx.fillStyle = '#000000';
 
+  const maxCharsPerLine = 30;
   const [line1, line2] = splitNameIntoLines(nama, maxCharsPerLine);
 
-  // Hitung ukuran kotak putih
-  const lineHeight = fontSize * 1.15;
-  const totalTextHeight = line2 ? lineHeight * 2 : lineHeight;
-
-  const text1Metrics = ctx.measureText(line1.toUpperCase());
-  const text2Metrics = line2 ? ctx.measureText(line2.toUpperCase()) : { width: 0 };
-  const maxTextWidth = Math.max(text1Metrics.width, text2Metrics.width);
-
-  const boxPaddingX = 16;
-  const boxPaddingY = 12;
-  const boxWidth  = maxTextWidth + boxPaddingX * 2;
-  const boxHeight = totalTextHeight + boxPaddingY * 2;
-  const boxX = qrCenterX - boxWidth / 2;
-  const boxY = qrCenterY - boxHeight / 2;
-
-  // Kotak putih dengan border hitam
-  drawRoundedRect(ctx, boxX, boxY, boxWidth, boxHeight, 10, '#ffffff', '#000000', 3);
-
-  // Gambar teks (BOLD)
-  ctx.fillStyle = '#000000';
-  ctx.font = fontStr;
+  const lineHeight = fontSize * 1.25;
+  const nameStartY = lineY + Math.round(padding * 1.4);
 
   if (line2) {
-    const line1Y = qrCenterY - lineHeight / 2;
-    const line2Y = qrCenterY + lineHeight / 2;
-    ctx.fillText(line1.toUpperCase(), qrCenterX, line1Y);
-    ctx.fillText(line2.toUpperCase(), qrCenterX, line2Y);
+    const line1Y = nameStartY + lineHeight / 2;
+    const line2Y = line1Y + lineHeight;
+    ctx.fillText(line1.toUpperCase(), canvas.width / 2, line1Y);
+    ctx.fillText(line2.toUpperCase(), canvas.width / 2, line2Y);
   } else {
-    ctx.fillText(line1.toUpperCase(), qrCenterX, qrCenterY);
+    ctx.fillText(line1.toUpperCase(), canvas.width / 2, nameStartY + lineHeight / 2);
   }
 
-  // Download dengan nama file = tanggal
-  const filename = tanggal + '.png';
+  // ===== Inject metadata DPI ke PNG =====
+  const dataUrl = canvas.toDataURL('image/png');
+  const pngWithDpi = setPngDpi(dataUrl, DPI);
+
+  // ===== Download =====
+  const filename = tanggal + '_' + currentQrSizeCm + 'x' + currentQrSizeCm + 'cm_' + DPI + 'dpi.png';
   const link = document.createElement('a');
   link.download = filename;
-  link.href = canvas.toDataURL('image/png');
+  link.href = pngWithDpi;
   link.click();
 }
 
-/* ===== Helper: Rounded rectangle ===== */
-function drawRoundedRect(ctx, x, y, w, h, r, fillColor, strokeColor, strokeWidth) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
+/* =====================================================================
+   HELPER: Inject DPI metadata ke PNG (pHYs chunk)
+   ===================================================================== */
+function setPngDpi(dataUrl, dpi) {
+  try {
+    const base64 = dataUrl.split(',')[1];
+    const binaryStr = atob(base64);
+    const len = binaryStr.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) bytes[i] = binaryStr.charCodeAt(i);
 
-  if (fillColor) {
-    ctx.fillStyle = fillColor;
-    ctx.fill();
+    // Cek signature PNG
+    if (bytes[0] !== 0x89 || bytes[1] !== 0x50 || bytes[2] !== 0x4E || bytes[3] !== 0x47) {
+      return dataUrl;
+    }
+
+    // pixels per meter = DPI / 0.0254
+    const pixelsPerMeter = Math.round(dpi / 0.0254);
+
+    // Build pHYs chunk data (9 bytes)
+    const physData = new Uint8Array(9);
+    physData[0] = (pixelsPerMeter >>> 24) & 0xFF;
+    physData[1] = (pixelsPerMeter >>> 16) & 0xFF;
+    physData[2] = (pixelsPerMeter >>> 8) & 0xFF;
+    physData[3] = pixelsPerMeter & 0xFF;
+    physData[4] = (pixelsPerMeter >>> 24) & 0xFF;
+    physData[5] = (pixelsPerMeter >>> 16) & 0xFF;
+    physData[6] = (pixelsPerMeter >>> 8) & 0xFF;
+    physData[7] = pixelsPerMeter & 0xFF;
+    physData[8] = 1; // unit = meter
+
+    // Chunk type "pHYs"
+    const typeBytes = [0x70, 0x48, 0x59, 0x73];
+
+    // CRC32 dari (type + data)
+    const crcInput = new Uint8Array(4 + 9);
+    crcInput.set(typeBytes, 0);
+    crcInput.set(physData, 4);
+    const crc = crc32(crcInput);
+
+    // Full chunk: length(4) + type(4) + data(9) + crc(4) = 21 bytes
+    const chunk = new Uint8Array(21);
+    chunk[0] = 0; chunk[1] = 0; chunk[2] = 0; chunk[3] = 9;
+    chunk[4] = 0x70; chunk[5] = 0x48; chunk[6] = 0x59; chunk[7] = 0x73;
+    chunk.set(physData, 8);
+    chunk[17] = (crc >>> 24) & 0xFF;
+    chunk[18] = (crc >>> 16) & 0xFF;
+    chunk[19] = (crc >>> 8) & 0xFF;
+    chunk[20] = crc & 0xFF;
+
+    // Insert setelah IHDR (offset 8 + 25 = 33)
+    const insertPos = 33;
+    const newBytes = new Uint8Array(bytes.length + chunk.length);
+    newBytes.set(bytes.subarray(0, insertPos), 0);
+    newBytes.set(chunk, insertPos);
+    newBytes.set(bytes.subarray(insertPos), insertPos + chunk.length);
+
+    // Encode ke base64
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < newBytes.length; i += chunkSize) {
+      binary += String.fromCharCode.apply(null, newBytes.subarray(i, i + chunkSize));
+    }
+    return 'data:image/png;base64,' + btoa(binary);
+  } catch (e) {
+    console.warn('Gagal inject DPI:', e);
+    return dataUrl;
   }
-  if (strokeColor && strokeWidth) {
-    ctx.lineWidth = strokeWidth;
-    ctx.strokeStyle = strokeColor;
-    ctx.stroke();
+}
+
+/* CRC32 table */
+const CRC_TABLE = (function () {
+  const table = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) {
+      c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    }
+    table[n] = c >>> 0;
   }
+  return table;
+})();
+
+function crc32(bytes) {
+  let crc = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) {
+    crc = (crc >>> 8) ^ CRC_TABLE[(crc ^ bytes[i]) & 0xFF];
+  }
+  return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
 /* ============ COPY PAYLOAD ============ */
@@ -662,7 +807,7 @@ function copyPayload() {
   }
   navigator.clipboard.writeText(encrypted)
     .then(() => {
-      alert('✅ Payload terenkripsi berhasil di-copy ke clipboard.\n\nTempel di verify.html untuk verifikasi.');
+      alert('✅ Payload terenkripsi berhasil di-copy.\n\nTempel di verify.html untuk verifikasi.');
     })
     .catch(() => {
       const ta = document.createElement('textarea');
@@ -675,7 +820,7 @@ function copyPayload() {
         document.execCommand('copy');
         alert('✅ Payload berhasil di-copy.');
       } catch (e) {
-        alert('Gagal copy. Silakan gunakan tombol Download PNG.');
+        alert('Gagal copy. Gunakan tombol Download PNG.');
       }
       document.body.removeChild(ta);
     });
