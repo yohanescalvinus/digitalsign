@@ -6,159 +6,442 @@
 <title>Verifikasi Digital Signature</title>
 <style>
   :root {
-    --bg: #f0f2f5; --card: #ffffff; --text: #222; --text-muted: #666;
-    --label: #333; --border: #ccc; --border-light: #ddd; --input-bg: #fff;
-    --primary: #0b5ed7; --primary-hover: #0a4fb8;
-    --secondary: #6c757d; --secondary-hover: #565e64;
-    --success: #198754; --success-hover: #157347; --success-bg: #e7f8ee;
-    --danger: #dc3545; --error-bg: #ffe7e7;
-    --info-bg: #e7f5ff; --warn-bg: #fff3cd; --warn-text: #856404;
-    --warn-border: #ffc107; --shadow: rgba(0,0,0,0.1);
-    --preview-bg: #f8f9ff; --preview-border: #0b5ed7;
+    --bg: #f0f2f5;
+    --card: #ffffff;
+    --text: #222;
+    --text-muted: #666;
+    --label: #333;
+    --border: #ccc;
+    --input-bg: #fff;
+    --primary: #0b5ed7;
+    --primary-hover: #0a4fb8;
+    --secondary: #6c757d;
+    --secondary-hover: #565e64;
+    --success: #198754;
+    --success-hover: #157347;
+    --success-bg: #e7f8ee;
+    --danger: #dc3545;
+    --error-bg: #ffe7e7;
+    --info-bg: #e7f5ff;
+    --warn-bg: #fff3cd;
+    --warn-text: #856404;
+    --warn-border: #ffc107;
+    --shadow: rgba(0,0,0,0.1);
   }
   [data-theme="dark"] {
-    --bg: #121212; --card: #1e1e1e; --text: #e8e8e8; --text-muted: #999;
-    --label: #ccc; --border: #444; --border-light: #3a3a3a; --input-bg: #2a2a2a;
-    --primary: #4d9fff; --primary-hover: #3a8ce6;
-    --secondary: #555; --secondary-hover: #666;
-    --success: #2ea66d; --success-hover: #268c5c; --success-bg: #1a3d2c;
-    --danger: #ef5350; --error-bg: #4a1f1f;
-    --info-bg: #1a3a52; --warn-bg: #4a3a1a; --warn-text: #ffcc66;
-    --warn-border: #cc9900; --shadow: rgba(0,0,0,0.5);
-    --preview-bg: #1a2a3d; --preview-border: #4d9fff;
+    --bg: #121212;
+    --card: #1e1e1e;
+    --text: #e8e8e8;
+    --text-muted: #999;
+    --label: #ccc;
+    --border: #444;
+    --input-bg: #2a2a2a;
+    --primary: #4d9fff;
+    --primary-hover: #3a8ce6;
+    --secondary: #555;
+    --secondary-hover: #666;
+    --success: #2ea66d;
+    --success-hover: #268c5c;
+    --success-bg: #1a3d2c;
+    --danger: #ef5350;
+    --error-bg: #4a1f1f;
+    --info-bg: #1a3a52;
+    --warn-bg: #4a3a1a;
+    --warn-text: #ffcc66;
+    --warn-border: #cc9900;
+    --shadow: rgba(0,0,0,0.5);
   }
   * { box-sizing: border-box; transition: background-color 0.25s, color 0.25s, border-color 0.25s; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     font-family: 'Segoe UI', Arial, sans-serif;
-    background: var(--bg); color: var(--text);
-    margin: 0; padding: 20px;
-    display: flex; justify-content: center; min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: clamp(10px, 3vw, 20px);
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+    font-size: clamp(13px, 2.5vw, 14px);
   }
   .container {
-    background: var(--card); padding: 30px; border-radius: 12px;
+    background: var(--card);
+    padding: clamp(18px, 4vw, 30px);
+    border-radius: 12px;
     box-shadow: 0 4px 20px var(--shadow);
-    max-width: 560px; width: 100%;
+    max-width: 620px;
+    width: 100%;
   }
-  h1 { font-size: 20px; margin-top: 0; }
+  h1 {
+    font-size: clamp(18px, 4vw, 22px);
+    margin-top: 0;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+  }
+  .subtitle {
+    color: var(--text-muted);
+    font-size: clamp(12px, 2.5vw, 13.5px);
+    margin-top: -6px;
+    margin-bottom: 22px;
+    line-height: 1.5;
+  }
   .row { margin-bottom: 14px; }
-  label { display: block; font-weight: 600; margin-bottom: 5px; color: var(--label); font-size: 13px; }
-  input, textarea {
-    width: 100%; padding: 9px 10px;
-    border: 1px solid var(--border); border-radius: 6px;
-    font-size: 14px; font-family: inherit;
-    background: var(--input-bg); color: var(--text);
+  label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: var(--label);
+    font-size: clamp(12px, 2.4vw, 13px);
   }
-  input:focus, textarea:focus { outline: none; border-color: var(--primary); }
-  textarea { resize: vertical; }
-  textarea.mono { font-family: monospace; font-size: 12px; }
+  input, textarea, select {
+    width: 100%;
+    padding: clamp(8px, 2vw, 10px);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: clamp(13px, 2.5vw, 14px);
+    font-family: inherit;
+    background: var(--input-bg);
+    color: var(--text);
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--primary); }
+  textarea { resize: vertical; font-family: monospace; font-size: 12px; }
   button {
-    background: var(--primary); color: #fff; border: none;
-    padding: 11px 18px; border-radius: 6px;
-    font-size: 14px; cursor: pointer; font-weight: 600;
-    margin-right: 8px; margin-top: 4px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: clamp(10px, 2.5vw, 12px) clamp(14px, 3vw, 18px);
+    border-radius: 6px;
+    font-size: clamp(13px, 2.5vw, 14px);
+    cursor: pointer;
+    font-weight: 600;
+    margin-right: 6px;
+    margin-top: 4px;
   }
   button:hover { background: var(--primary-hover); }
   button.secondary { background: var(--secondary); }
   button.secondary:hover { background: var(--secondary-hover); }
   button.success { background: var(--success); }
   button.success:hover { background: var(--success-hover); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* ============ TABS ============ */
   .tabs {
-    display: flex; gap: 0; margin-bottom: 15px;
-    border-bottom: 2px solid var(--border-light);
+    display: flex;
+    gap: 0;
+    margin-bottom: 15px;
+    border-bottom: 2px solid var(--border);
+    overflow-x: auto;
   }
   .tab {
-    padding: 8px 16px; cursor: pointer;
-    font-size: 13px; font-weight: 600;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: clamp(12px, 2.4vw, 13px);
+    font-weight: 600;
     color: var(--text-muted);
     border-bottom: 2px solid transparent;
-    margin-bottom: -2px; background: none; border-radius: 0;
+    margin-bottom: -2px;
+    background: none;
+    border-radius: 0;
     margin-right: 0;
+    white-space: nowrap;
   }
   .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
   .tab:hover { color: var(--primary); background: none; }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
-  #decryptResult {
-    margin-top: 15px; padding: 12px;
-    border-radius: 8px; background: var(--info-bg);
+
+  /* ============ AUTHENTICITY BADGE ============ */
+  .auth-badge {
+    margin: 14px 0;
+    padding: clamp(16px, 3vw, 22px) clamp(14px, 3vw, 20px);
+    border-radius: 12px;
+    text-align: center;
+    font-weight: 800;
+    font-size: clamp(16px, 3.5vw, 20px);
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    animation: badgePop 0.4s ease;
+  }
+  @keyframes badgePop {
+    0% { transform: scale(0.8); opacity: 0; }
+    60% { transform: scale(1.05); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  .auth-badge.valid {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 2px solid var(--success);
+  }
+  .auth-badge.invalid {
+    background: var(--error-bg);
+    color: var(--danger);
+    border: 2px solid var(--danger);
+  }
+  .auth-badge.unlocked-warn {
+    background: var(--warn-bg);
+    color: var(--warn-text);
+    border: 2px solid var(--warn-border);
+  }
+  .auth-badge-icon {
+    font-size: clamp(28px, 6vw, 40px);
+    line-height: 1;
+  }
+  .auth-badge-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .auth-badge-sub {
+    font-size: clamp(11px, 2.3vw, 12.5px);
+    font-weight: 500;
+    opacity: 0.85;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+
+  /* ============ RESULT CARD ============ */
+  .result-card {
+    margin-top: 14px;
+    padding: clamp(14px, 3vw, 18px);
+    background: var(--card);
+    border-radius: 10px;
     border-left: 4px solid var(--primary);
-    display: none; text-align: left; font-size: 14px;
+    font-size: clamp(12px, 2.4vw, 13.5px);
+    line-height: 1.7;
+    text-align: left;
+    word-wrap: break-word;
   }
-  #decryptResult.error { background: var(--error-bg); border-left-color: var(--danger); }
-  #decryptResult.success { background: var(--success-bg); border-left-color: var(--success); }
-  #decryptResult .msg-box {
-    margin-top: 10px; padding: 10px; background: var(--card);
-    border-left: 3px solid var(--success); border-radius: 4px;
-    font-style: italic;
+  .result-card.valid { border-left-color: var(--success); }
+  .result-card.invalid { border-left-color: var(--danger); }
+  .result-card .field-row {
+    display: flex;
+    margin: 4px 0;
+    gap: 6px;
   }
-  .pw-wrap { position: relative; }
-  .pw-toggle {
-    position: absolute; right: 10px; top: 50%;
-    transform: translateY(-50%); cursor: pointer; font-size: 16px;
-    user-select: none; color: var(--text-muted);
-    background: none; padding: 4px; border: none; margin: 0;
-    width: auto; height: auto;
+  .result-card .field-key {
+    font-weight: 700;
+    min-width: 90px;
+    color: var(--label);
+    flex-shrink: 0;
   }
-  .pw-toggle:hover { background: none; }
-  .lock-indicator {
-    font-size: 11px; margin-top: 6px; padding: 6px 10px;
-    border-radius: 6px; border-left: 3px solid;
-    background: var(--warn-bg); color: var(--warn-text);
-    border-left-color: var(--warn-border);
+  .result-card .field-value {
+    color: var(--text);
+    word-break: break-word;
   }
-  .lock-indicator.weak { background: var(--error-bg); color: var(--danger); border-left-color: var(--danger); }
-  .lock-indicator.medium { background: var(--info-bg); color: var(--primary); border-left-color: var(--primary); }
-  .lock-indicator.strong { background: var(--success-bg); color: var(--success); border-left-color: var(--success); }
-  .theme-toggle {
-    position: fixed; top: 20px; right: 20px; z-index: 999;
-    width: 46px; height: 46px; border-radius: 50%;
-    background: var(--card); color: var(--text);
-    border: 2px solid var(--border);
-    box-shadow: 0 4px 12px var(--shadow);
-    cursor: pointer; font-size: 20px;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0; margin: 0;
-  }
-  .theme-toggle:hover { transform: scale(1.1); background: var(--card); }
-  #status { margin-top: 10px; font-size: 12px; padding: 6px 10px; border-radius: 6px; display: none; }
-  #status.ok { background: var(--success-bg); color: var(--success); display: block; }
-  #status.err { background: var(--error-bg); color: var(--danger); display: block; }
-  .note { font-size: 12px; color: var(--text-muted); margin-top: 15px; }
-  .pdf-drop {
-    border: 2px dashed var(--border); border-radius: 10px;
-    padding: 30px 20px; text-align: center; cursor: pointer;
-    background: var(--input-bg); margin-bottom: 12px;
-  }
-  .pdf-drop:hover, .pdf-drop.dragover { border-color: var(--primary); background: var(--preview-bg); }
-  .pdf-drop-icon { font-size: 36px; margin-bottom: 8px; }
-  .pdf-drop-text { font-size: 14px; }
-  .pdf-drop-hint { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
-  #pdfPreview {
-    display: none; max-height: 300px; overflow: auto;
-    border: 1px solid var(--border-light); border-radius: 8px;
-    padding: 10px; background: var(--input-bg); margin-top: 10px;
-  }
-  #pdfPreview canvas {
-    max-width: 100%; height: auto; display: block;
-    margin: 0 auto 10px; border: 1px solid var(--border-light);
+  .result-card .msg-box {
+    margin-top: 10px;
+    padding: 10px;
+    background: var(--info-bg);
+    border-left: 3px solid var(--primary);
     border-radius: 4px;
+    font-style: italic;
+    color: var(--text);
   }
-  #pdfInfo { font-size: 12px; color: var(--text-muted); margin-top: 8px; text-align: center; }
+  .result-actions {
+    margin-top: 12px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .result-actions button {
+    font-size: 12px;
+    padding: 8px 12px;
+    margin: 0;
+  }
+
+  /* ============ UPLOAD AREA ============ */
+  .upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: clamp(20px, 4vw, 30px) clamp(14px, 3vw, 20px);
+    text-align: center;
+    cursor: pointer;
+    background: var(--input-bg);
+    margin-bottom: 12px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .upload-area:hover, .upload-area.dragover {
+    border-color: var(--primary);
+    background: var(--info-bg);
+  }
+  .upload-icon {
+    font-size: clamp(32px, 7vw, 44px);
+    margin-bottom: 8px;
+  }
+  .upload-text { font-size: clamp(13px, 2.5vw, 14px); }
+  .upload-hint {
+    font-size: clamp(11px, 2.2vw, 12px);
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* ============ CAMERA MODAL ============ */
+  .camera-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.9);
+    z-index: 5000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+  }
+  .camera-modal.active { display: flex; }
+  .camera-view {
+    position: relative;
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+  }
+  .camera-view video {
+    display: block;
+    max-width: 100%;
+    max-height: 80vh;
+    width: auto;
+    height: auto;
+  }
+  .camera-overlay {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    max-width: 300px;
+    aspect-ratio: 1 / 1;
+    border: 3px solid rgba(255,255,255,0.9);
+    border-radius: 12px;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
+  .camera-overlay::before,
+  .camera-overlay::after {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    border: 4px solid #fff;
+  }
+  .camera-overlay::before {
+    top: -4px; left: -4px;
+    border-right: none; border-bottom: none;
+    border-radius: 12px 0 0 0;
+  }
+  .camera-overlay::after {
+    bottom: -4px; right: -4px;
+    border-left: none; border-top: none;
+    border-radius: 0 0 12px 0;
+  }
+  .camera-status {
+    color: #fff;
+    margin-top: 14px;
+    font-size: 14px;
+    text-align: center;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.15);
+    min-width: 200px;
+  }
+  .camera-actions {
+    margin-top: 16px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .camera-actions button {
+    padding: 12px 22px;
+    font-size: 14px;
+    border-radius: 24px;
+    margin: 0;
+  }
+  .camera-actions button.secondary {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+  }
+  .camera-actions button.secondary:hover {
+    background: rgba(255,255,255,0.35);
+  }
+
+  /* ============ BATCH RESULTS ============ */
+  .batch-summary {
+    margin: 14px 0;
+    padding: clamp(14px, 3vw, 18px);
+    border-radius: 10px;
+    background: var(--info-bg);
+    border-left: 4px solid var(--primary);
+    font-size: clamp(12px, 2.4vw, 13.5px);
+    line-height: 1.6;
+  }
+  .batch-summary.good {
+    background: var(--success-bg);
+    border-left-color: var(--success);
+  }
+  .batch-summary.bad {
+    background: var(--error-bg);
+    border-left-color: var(--danger);
+  }
+  .batch-item {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: var(--card);
+    border-radius: 8px;
+    border-left: 4px solid var(--primary);
+    font-size: clamp(11px, 2.3vw, 12.5px);
+  }
+  .batch-item.valid { border-left-color: var(--success); }
+  .batch-item.invalid { border-left-color: var(--danger); }
+
+  /* ============ GENERIC ============ */
   .spinner {
-    display: inline-block; width: 16px; height: 16px;
+    display: inline-block;
+    width: 16px; height: 16px;
     border: 2px solid var(--border);
-    border-top-color: var(--primary); border-radius: 50%;
+    border-top-color: var(--primary);
+    border-radius: 50%;
     animation: spin 0.8s linear infinite;
-    vertical-align: middle; margin-right: 6px;
+    vertical-align: middle;
+    margin-right: 6px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  .result-item {
-    margin-top: 10px; padding: 10px;
-    background: var(--card); border-radius: 6px;
-    border-left: 3px solid var(--primary); font-size: 13px;
+
+  /* ============ THEME TOGGLE ============ */
+  .theme-toggle {
+    position: fixed;
+    top: clamp(10px, 2vw, 20px);
+    right: clamp(10px, 2vw, 20px);
+    z-index: 999;
+    width: clamp(40px, 8vw, 46px);
+    height: clamp(40px, 8vw, 46px);
+    border-radius: 50%;
+    background: var(--card);
+    color: var(--text);
+    border: 2px solid var(--border);
+    box-shadow: 0 4px 12px var(--shadow);
+    cursor: pointer;
+    font-size: clamp(16px, 4vw, 20px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0; margin: 0;
   }
-  .result-item.success { border-left-color: var(--success); }
-  .result-item.error { border-left-color: var(--danger); }
+  .theme-toggle:hover { transform: scale(1.1); }
+
+  #status {
+    margin-top: 10px;
+    font-size: clamp(11px, 2.3vw, 12px);
+    padding: 6px 10px;
+    border-radius: 6px;
+    display: none;
+  }
+  #status.ok { background: var(--success-bg); color: var(--success); display: block; }
+  #status.err { background: var(--error-bg); color: var(--danger); display: block; }
 </style>
 </head>
 <body>
@@ -167,34 +450,32 @@
 
 <div class="container">
   <h1>🔍 Verifikasi Digital Signature</h1>
-  <p class="note" style="margin-top:0;">Scan QR atau upload PDF untuk memverifikasi keaslian dokumen.</p>
+  <p class="subtitle">Scan QR, upload PDF, atau gunakan kamera untuk memverifikasi keaslian dokumen.</p>
 
   <div id="status"></div>
 
+  <!-- TABS -->
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('text')" id="tabText">📝 Teks / QR Gambar</button>
-    <button class="tab" onclick="switchTab('pdf')" id="tabPdf">📄 Dari PDF</button>
+    <button class="tab active" onclick="switchTab('text')" id="tabText">📝 Teks / QR</button>
+    <button class="tab" onclick="switchTab('pdf')" id="tabPdf">📄 PDF</button>
+    <button class="tab" onclick="switchTab('batch')" id="tabBatch">📚 Banyak File</button>
   </div>
 
-  <!-- TAB 1 -->
+  <!-- ============ TAB 1: TEKS / QR ============ -->
   <div class="tab-content active" id="contentText">
     <div class="row">
-      <label>Scan QR atau tempel payload terenkripsi</label>
-      <textarea id="encryptedInput" class="mono" rows="5" placeholder="Tempel ciphertext AES..."></textarea>
+      <label>Payload terenkripsi / Scan QR Code</label>
+      <textarea id="encryptedInput" rows="5" placeholder="Tempel ciphertext AES di sini..."></textarea>
     </div>
     <div class="row">
       <label>🔑 Password</label>
-      <div class="pw-wrap">
-        <input type="password" id="secretDecrypt" placeholder="Masukkan password..."
-               oninput="updateLockIndicator('secretDecrypt', 'lockIndicatorDecrypt')" />
-        <button type="button" class="pw-toggle" onclick="togglePassword('secretDecrypt', this)">👁️</button>
-      </div>
-      <div id="lockIndicatorDecrypt" class="lock-indicator"></div>
+      <input type="password" id="secretDecrypt" placeholder="Masukkan password..." />
     </div>
 
     <button class="success" onclick="decryptPayload()">🔓 Verifikasi</button>
     <button class="secondary" onclick="pasteClipboard()">📋 Paste</button>
-    <button class="secondary" onclick="scanFromImage()">🖼️ Scan QR dari Gambar</button>
+    <button class="secondary" onclick="scanFromImage()">🖼️ Upload QR</button>
+    <button class="secondary" onclick="openCamera()">📷 Buka Kamera</button>
 
     <input type="file" id="qrFile" accept="image/*" style="display:none" onchange="handleQRFile(event)" />
     <canvas id="scanCanvas" style="display:none;"></canvas>
@@ -202,143 +483,144 @@
     <div id="decryptResult"></div>
   </div>
 
-  <!-- TAB 2 -->
+  <!-- ============ TAB 2: PDF ============ -->
   <div class="tab-content" id="contentPdf">
     <div class="row">
       <label>Upload Dokumen PDF</label>
-      <div class="pdf-drop" id="pdfDrop" onclick="document.getElementById('pdfFile').click()">
-        <div class="pdf-drop-icon">📄</div>
-        <div class="pdf-drop-text"><b>Klik</b> atau <b>drag & drop</b> file PDF di sini</div>
-        <div class="pdf-drop-hint">QR pada halaman PDF akan otomatis dipindai</div>
+      <div class="upload-area" id="pdfDrop" onclick="document.getElementById('pdfFile').click()">
+        <div class="upload-icon">📄</div>
+        <div class="upload-text"><b>Klik</b> atau <b>drag & drop</b> file PDF di sini</div>
+        <div class="upload-hint">QR pada halaman PDF akan otomatis dipindai</div>
       </div>
       <input type="file" id="pdfFile" accept="application/pdf,.pdf" style="display:none" onchange="handlePDFFile(event)" />
     </div>
-
     <div class="row">
       <label>🔑 Password</label>
-      <div class="pw-wrap">
-        <input type="password" id="secretDecryptPdf" placeholder="Masukkan password..."
-               oninput="updateLockIndicator('secretDecryptPdf', 'lockIndicatorPdf')" />
-        <button type="button" class="pw-toggle" onclick="togglePassword('secretDecryptPdf', this)">👁️</button>
-      </div>
-      <div id="lockIndicatorPdf" class="lock-indicator"></div>
+      <input type="password" id="secretDecryptPdf" placeholder="Masukkan password..." />
     </div>
-
     <div id="pdfPreview"></div>
-    <div id="pdfInfo"></div>
+    <div id="pdfInfo" style="font-size:12px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
     <div id="pdfResult"></div>
+  </div>
+
+  <!-- ============ TAB 3: BATCH ============ -->
+  <div class="tab-content" id="contentBatch">
+    <div class="row">
+      <label>Upload Banyak Gambar / PDF Sekaligus</label>
+      <div class="upload-area" id="batchDrop" onclick="document.getElementById('batchFile').click()">
+        <div class="upload-icon">📚</div>
+        <div class="upload-text"><b>Klik</b> atau <b>drag & drop</b> file di sini</div>
+        <div class="upload-hint">Bisa pilih banyak file sekaligus. Password harus sama.</div>
+      </div>
+      <input type="file" id="batchFile" multiple accept="image/*,application/pdf,.pdf" style="display:none" onchange="handleBatchFiles(event)" />
+    </div>
+    <div class="row">
+      <label>🔑 Password (untuk semua file)</label>
+      <input type="password" id="secretBatch" placeholder="Masukkan password yang sama..." />
+    </div>
+    <div id="batchResult"></div>
+  </div>
+
+</div>
+
+<!-- CAMERA MODAL -->
+<div class="camera-modal" id="cameraModal">
+  <div class="camera-view">
+    <video id="cameraVideo" playsinline autoplay muted></video>
+    <div class="camera-overlay"></div>
+  </div>
+  <div class="camera-status" id="cameraStatus">📷 Arahkan kamera ke QR Code...</div>
+  <div class="camera-actions">
+    <button class="secondary" onclick="closeCamera()">✕ Tutup Kamera</button>
   </div>
 </div>
 
 <script src="crypto-js.min.js"></script>
 <script src="jsQR.js"></script>
 <script src="pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 /* ============ KONSTANTA ============ */
 const DEFAULT_SECRET = 'DIGITAL-SIGNATURE-DEFAULT-KEY-2024';
-function resolveSecret(input) {
-  const s = (input || '').trim();
-  return s.length > 0 ? s : DEFAULT_SECRET;
-}
 
-/* ============ TEMA ============ */
+/* =====================================================================
+   TEMA — AUTO DARK/LIGHT
+   ===================================================================== */
+function detectSystemTheme() {
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+  return 'light';
+}
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   const btn = document.getElementById('themeBtn');
   if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
-  localStorage.setItem('theme', theme);
 }
 function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme') || 'light';
   applyTheme(cur === 'dark' ? 'light' : 'dark');
 }
-(function () {
-  const saved = localStorage.getItem('theme') || 'light';
-  document.documentElement.setAttribute('data-theme', saved);
+(function initTheme() {
+  const theme = detectSystemTheme();
+  document.documentElement.setAttribute('data-theme', theme);
   window.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('themeBtn');
-    if (btn) btn.textContent = saved === 'dark' ? '☀️' : '🌙';
+    if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
   });
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      applyTheme(e.matches ? 'dark' : 'light');
+    });
+  }
 })();
 
-/* ============ TABS ============ */
+/* =====================================================================
+   TABS
+   ===================================================================== */
 function switchTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   if (tab === 'text') {
     document.getElementById('tabText').classList.add('active');
     document.getElementById('contentText').classList.add('active');
-  } else {
+  } else if (tab === 'pdf') {
     document.getElementById('tabPdf').classList.add('active');
     document.getElementById('contentPdf').classList.add('active');
-  }
-}
-
-/* ============ PASSWORD ============ */
-function togglePassword(id, btn) {
-  const i = document.getElementById(id);
-  if (i.type === 'password') { i.type = 'text'; btn.textContent = '🙈'; }
-  else { i.type = 'password'; btn.textContent = '👁️'; }
-}
-function updateLockIndicator(inputId, indicatorId) {
-  const val = document.getElementById(inputId).value.trim();
-  const el = document.getElementById(indicatorId);
-  el.classList.remove('weak', 'medium', 'strong');
-  if (val.length === 0) {
-    el.innerHTML = '⚠️ Kosong — akan coba dengan kunci default';
-  } else if (val.length < 6) {
-    el.classList.add('weak');
-    el.innerHTML = '🔓 Password pendek.';
-  } else if (val.length < 10) {
-    el.classList.add('medium');
-    el.innerHTML = '🔐 Password cukup kuat.';
   } else {
-    el.classList.add('strong');
-    el.innerHTML = '🔒 Password kuat.';
+    document.getElementById('tabBatch').classList.add('active');
+    document.getElementById('contentBatch').classList.add('active');
   }
 }
 
-/* ============ INIT ============ */
-window.addEventListener('DOMContentLoaded', function () {
-  const status = document.getElementById('status');
-  const checks = [
-    { name: 'CryptoJS', ok: typeof CryptoJS !== 'undefined' },
-    { name: 'jsQR',     ok: typeof jsQR !== 'undefined' },
-    { name: 'pdf.js',   ok: typeof pdfjsLib !== 'undefined' }
-  ];
-  const gagal = checks.filter(c => !c.ok);
-  if (gagal.length === 0) {
-    status.className = 'ok';
-    status.textContent = '✅ Siap digunakan';
-    setTimeout(() => status.style.display = 'none', 3000);
-  } else {
-    status.className = 'err';
-    status.innerHTML = '❌ Library gagal dimuat: <b>' + gagal.map(c => c.name).join(', ') + '</b>';
-  }
+/* =====================================================================
+   UTILITY
+   ===================================================================== */
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
-  if (typeof pdfjsLib !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
-  }
+function resolveSecret(inputSecret) {
+  const s = (inputSecret || '').trim();
+  return s.length > 0 ? s : DEFAULT_SECRET;
+}
 
-  updateLockIndicator('secretDecrypt', 'lockIndicatorDecrypt');
-  updateLockIndicator('secretDecryptPdf', 'lockIndicatorPdf');
+function formatTimestamp(ts) {
+  if (!ts) return '-';
+  const d = new Date(ts);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hour = String(d.getHours()).padStart(2, '0');
+  const minute = String(d.getMinutes()).padStart(2, '0');
+  const second = String(d.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
 
-  // Setup drag & drop PDF
-  const drop = document.getElementById('pdfDrop');
-  ['dragenter', 'dragover'].forEach(ev => {
-    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('dragover'); });
-  });
-  ['dragleave', 'drop'].forEach(ev => {
-    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('dragover'); });
-  });
-  drop.addEventListener('drop', e => {
-    const file = e.dataTransfer.files[0];
-    if (file) handlePDFFile({ target: { files: [file], value: '' } });
-  });
-});
-
-/* ============ DECRYPT CORE ============ */
+/* =====================================================================
+   DECRYPT CORE
+   ===================================================================== */
 function doDecrypt(encrypted, secretInput) {
   if (!encrypted) return { ok: false, error: 'Payload kosong.' };
   const secret = resolveSecret(secretInput);
@@ -352,52 +634,246 @@ function doDecrypt(encrypted, secretInput) {
   }
 }
 
-function renderResult(data, secretInput) {
-  // Deteksi pintar: kalau field `locked` tidak ada (QR lama), fallback ke cek password input
-  let locked;
-  if (typeof data.locked === 'boolean') {
-    locked = data.locked;
+/* =====================================================================
+   AUTHENTICITY BADGE + RESULT CARD
+   ===================================================================== */
+function buildAuthenticityBadge(data, inputSecret) {
+  const locked = typeof data.locked === 'boolean' ? data.locked : (inputSecret || '').trim().length > 0;
+
+  if (locked) {
+    return `
+      <div class="auth-badge valid">
+        <div class="auth-badge-icon">✅</div>
+        <div class="auth-badge-text">
+          <div>ASLI & TERVERIFIKASI</div>
+          <div class="auth-badge-sub">Dokumen terkunci dengan password</div>
+        </div>
+      </div>
+    `;
   } else {
-    locked = (secretInput || '').trim().length > 0;
+    return `
+      <div class="auth-badge unlocked-warn">
+        <div class="auth-badge-icon">⚠️</div>
+        <div class="auth-badge-text">
+          <div>TERVERIFIKASI (TIDAK TERKUNCI)</div>
+          <div class="auth-badge-sub">Dokumen valid, tetapi tidak dikunci password</div>
+        </div>
+      </div>
+    `;
   }
-  const lockBadge = locked
-    ? '<span style="color:var(--success);">🔒 Terkunci</span>'
-    : '<span style="color:var(--warn-text);">⚠️ Tidak terkunci</span>';
+}
+
+function buildResultCard(data, inputSecret) {
+  const nama      = data.nama      || data.n      || '';
+  const institusi = data.institusi || data.i      || '';
+  const jabatan   = data.jabatan   || data.j      || '';
+  const tanggal   = data.tanggal   || data.t      || '';
+  const pesan     = data.pesan     || data.p      || '';
+  const ts        = data.ts;
 
   return `
-    <b>✅ Verifikasi BERHASIL:</b> ${lockBadge}<br/><br/>
-    <b>Nama</b>      : ${esc(data.nama)}<br/>
-    <b>Institusi</b> : ${esc(data.institusi)}<br/>
-    <b>Jabatan</b>   : ${esc(data.jabatan)}<br/>
-    <b>Tanggal</b>   : ${esc(data.tanggal)}<br/>
-    <b>Timestamp</b> : ${new Date(data.ts).toLocaleString('id-ID')}
-    ${data.pesan ? `<div class="msg-box">💬 <b>Pesan:</b> ${esc(data.pesan)}</div>` : ''}
+    <div class="result-card valid">
+      <div class="field-row"><span class="field-key">Nama</span><span class="field-value">: ${esc(nama)}</span></div>
+      <div class="field-row"><span class="field-key">Institusi</span><span class="field-value">: ${esc(institusi)}</span></div>
+      <div class="field-row"><span class="field-key">Jabatan</span><span class="field-value">: ${esc(jabatan)}</span></div>
+      <div class="field-row"><span class="field-key">Tanggal</span><span class="field-value">: ${esc(tanggal)}</span></div>
+      ${ts ? `<div class="field-row"><span class="field-key">Timestamp</span><span class="field-value">: ${esc(formatTimestamp(ts))}</span></div>` : ''}
+      ${pesan ? `<div class="msg-box">💬 <b>Pesan:</b> ${esc(pesan)}</div>` : ''}
+      <div class="result-actions">
+        <button class="secondary" onclick="copyResultText(${esc(JSON.stringify(JSON.stringify({nama, institusi, jabatan, tanggal, pesan, ts, locked: data.locked})))});">📋 Copy Hasil</button>
+        <button class="secondary" onclick="downloadResultPDF(${esc(JSON.stringify(JSON.stringify({nama, institusi, jabatan, tanggal, pesan, ts, locked: data.locked})))});">📄 Download PDF</button>
+      </div>
+    </div>
   `;
 }
 
-/* ============ TAB 1: DECRYPT ============ */
+/* =====================================================================
+   COPY RESULT
+   ===================================================================== */
+function copyResultText(payloadJson) {
+  try {
+    const data = JSON.parse(payloadJson);
+    const locked = typeof data.locked === 'boolean' ? data.locked : false;
+    const text =
+`✅ VERIFIKASI BERHASIL
+Status    : ${locked ? '🔒 Terkunci' : '⚠️ Tidak terkunci'}
+Nama      : ${data.nama || '-'}
+Institusi : ${data.institusi || '-'}
+Jabatan   : ${data.jabatan || '-'}
+Tanggal   : ${data.tanggal || '-'}
+Timestamp : ${data.ts ? formatTimestamp(data.ts) : '-'}
+${data.pesan ? 'Pesan     : ' + data.pesan : ''}
+Diverifikasi: ${formatTimestamp(Date.now())}`;
+
+    navigator.clipboard.writeText(text)
+      .then(() => alert('✅ Hasil verifikasi berhasil di-copy.'))
+      .catch(() => fallbackCopy(text));
+  } catch (e) {
+    alert('Gagal copy: ' + e.message);
+  }
+}
+
+function fallbackCopy(text) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try {
+    document.execCommand('copy');
+    alert('✅ Hasil verifikasi di-copy.');
+  } catch (e) {
+    alert('Gagal copy.');
+  }
+  document.body.removeChild(ta);
+}
+
+/* =====================================================================
+   DOWNLOAD PDF
+   ===================================================================== */
+function downloadResultPDF(payloadJson) {
+  try {
+    if (!window.jspdf || !window.jspdf.jsPDF) {
+      alert('❌ Library PDF belum siap. Cek file jspdf.umd.min.js');
+      return;
+    }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+    const data = JSON.parse(payloadJson);
+    const locked = typeof data.locked === 'boolean' ? data.locked : false;
+
+    // Header
+    doc.setFillColor(11, 94, 215);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BUKTI VERIFIKASI DIGITAL', 105, 15, { align: 'center' });
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Personal Digital Signature', 105, 23, { align: 'center' });
+
+    // Status badge
+    doc.setFillColor(locked ? 25 : 255, locked ? 135 : 193, locked ? 84 : 7);
+    doc.rect(15, 45, 180, 15, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    const statusText = locked
+      ? '✓ TERVERIFIKASI - DOKUMEN TERKUNCI'
+      : '⚠ TERVERIFIKASI - TIDAK TERKUNCI';
+    doc.text(statusText, 105, 55, { align: 'center' });
+
+    // Data
+    doc.setTextColor(40, 40, 40);
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+
+    let y = 75;
+    const lineHeight = 8;
+    const fields = [
+      ['Nama', data.nama || '-'],
+      ['Institusi', data.institusi || '-'],
+      ['Jabatan', data.jabatan || '-'],
+      ['Tanggal', data.tanggal || '-'],
+      ['Timestamp', data.ts ? formatTimestamp(data.ts) : '-'],
+    ];
+
+    fields.forEach(([key, value]) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(key + ':', 20, y);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(value, 130);
+      doc.text(lines, 55, y);
+      y += lineHeight * lines.length;
+    });
+
+    if (data.pesan) {
+      y += 4;
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, y, 190, y);
+      y += 6;
+      doc.setFont('helvetica', 'bold');
+      doc.text('Pesan:', 20, y);
+      doc.setFont('helvetica', 'italic');
+      const pesanLines = doc.splitTextToSize(data.pesan, 160);
+      doc.text(pesanLines, 20, y + lineHeight);
+      y += lineHeight * (pesanLines.length + 1);
+    }
+
+    // Footer
+    y += 10;
+    doc.setDrawColor(11, 94, 215);
+    doc.setLineWidth(0.5);
+    doc.line(20, y, 190, y);
+    y += 6;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('Diverifikasi pada: ' + formatTimestamp(Date.now()), 20, y);
+    y += 5;
+    doc.text('Catatan: Bukti verifikasi ini dihasilkan otomatis oleh aplikasi Personal Digital Signature.', 20, y);
+
+    // Save
+    const filename = 'verifikasi-' + new Date().toISOString().slice(0, 10) + '.pdf';
+    doc.save(filename);
+
+  } catch (e) {
+    console.error(e);
+    alert('Gagal membuat PDF: ' + e.message);
+  }
+}
+
+/* =====================================================================
+   TAB 1: DECRYPT MANUAL
+   ===================================================================== */
 function decryptPayload() {
   const encrypted = document.getElementById('encryptedInput').value.trim();
   const secret    = document.getElementById('secretDecrypt').value;
   const box = document.getElementById('decryptResult');
-  box.className = ''; box.style.display = 'block';
+  box.innerHTML = '';
+
+  if (!encrypted) {
+    box.innerHTML = '<div class="auth-badge invalid"><div class="auth-badge-icon">⚠️</div><div class="auth-badge-text"><div>PAYLOAD KOSONG</div><div class="auth-badge-sub">Tempel ciphertext atau scan QR</div></div></div>';
+    return;
+  }
+  if (!secret) {
+    box.innerHTML = '<div class="auth-badge invalid"><div class="auth-badge-icon">⚠️</div><div class="auth-badge-text"><div>PASSWORD KOSONG</div><div class="auth-badge-sub">Masukkan password untuk verifikasi</div></div></div>';
+    return;
+  }
 
   const res = doDecrypt(encrypted, secret);
   if (res.ok) {
-    box.className = 'success';
-    box.innerHTML = renderResult(res.data, secret);
+    box.innerHTML = buildAuthenticityBadge(res.data, secret) + buildResultCard(res.data, secret);
   } else {
-    box.className = 'error';
-    box.innerHTML = '❌ ' + res.error;
+    box.innerHTML = `
+      <div class="auth-badge invalid">
+        <div class="auth-badge-icon">❌</div>
+        <div class="auth-badge-text">
+          <div>VERIFIKASI GAGAL</div>
+          <div class="auth-badge-sub">${esc(res.error)}</div>
+        </div>
+      </div>
+    `;
   }
 }
 
-/* ============ HELPER ============ */
+/* =====================================================================
+   HELPER: Copy & Paste
+   ===================================================================== */
 function pasteClipboard() {
+  if (!navigator.clipboard) { alert('Browser tidak mendukung clipboard.'); return; }
   navigator.clipboard.readText()
     .then(t => document.getElementById('encryptedInput').value = t.trim())
     .catch(() => alert('Tidak bisa akses clipboard.'));
 }
+
+/* =====================================================================
+   SCAN QR DARI GAMBAR
+   ===================================================================== */
 function scanFromImage() {
   if (typeof jsQR === 'undefined') { alert('jsQR belum ter-load.'); return; }
   document.getElementById('qrFile').click();
@@ -419,18 +895,156 @@ function handleQRFile(event) {
       decryptPayload();
     } else {
       const box = document.getElementById('decryptResult');
-      box.className = 'error'; box.style.display = 'block';
-      box.innerHTML = '❌ QR tidak terdeteksi.';
+      box.innerHTML = '<div class="auth-badge invalid"><div class="auth-badge-icon">❌</div><div class="auth-badge-text"><div>QR TIDAK TERDETEKSI</div><div class="auth-badge-sub">Coba gambar yang lebih jelas</div></div></div>';
     }
     event.target.value = '';
   };
   img.src = URL.createObjectURL(file);
 }
-function esc(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* =====================================================================
+   CAMERA REAL-TIME
+   ===================================================================== */
+let cameraStream = null;
+let cameraAnimFrame = null;
+
+async function openCamera() {
+  const modal = document.getElementById('cameraModal');
+  const video = document.getElementById('cameraVideo');
+  const statusEl = document.getElementById('cameraStatus');
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    alert('Browser tidak mendukung akses kamera.\n\nGunakan "Upload QR" atau HTTPS untuk kamera.');
+    return;
+  }
+
+  modal.classList.add('active');
+  statusEl.textContent = '📷 Meminta izin kamera...';
+
+  try {
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    video.srcObject = cameraStream;
+    await video.play();
+    statusEl.textContent = '📷 Arahkan kamera ke QR Code...';
+    startCameraScan();
+  } catch (err) {
+    console.error('Camera error:', err);
+    statusEl.textContent = '❌ Gagal akses kamera: ' + err.message;
+    setTimeout(() => closeCamera(), 3000);
+  }
 }
 
-/* ============ TAB 2: PDF ============ */
+function startCameraScan() {
+  const video = document.getElementById('cameraVideo');
+  const canvas = document.getElementById('scanCanvas');
+  const statusEl = document.getElementById('cameraStatus');
+
+  function scanFrame() {
+    if (!video.videoWidth || !video.videoHeight) {
+      cameraAnimFrame = requestAnimationFrame(scanFrame);
+      return;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    let code = null;
+    try {
+      if (typeof jsQR !== 'undefined') {
+        code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'dontInvert'
+        });
+      }
+    } catch (e) { /* silent */ }
+
+    if (code && code.data) {
+      statusEl.textContent = '✅ QR terdeteksi!';
+      document.getElementById('encryptedInput').value = code.data;
+      closeCamera();
+      setTimeout(() => decryptPayload(), 200);
+      return;
+    }
+    cameraAnimFrame = requestAnimationFrame(scanFrame);
+  }
+  cameraAnimFrame = requestAnimationFrame(scanFrame);
+}
+
+function closeCamera() {
+  const modal = document.getElementById('cameraModal');
+  modal.classList.remove('active');
+  if (cameraAnimFrame) {
+    cancelAnimationFrame(cameraAnimFrame);
+    cameraAnimFrame = null;
+  }
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+    cameraStream = null;
+  }
+  const video = document.getElementById('cameraVideo');
+  video.srcObject = null;
+}
+
+/* =====================================================================
+   TAB 2: PDF
+   ===================================================================== */
+window.addEventListener('DOMContentLoaded', () => {
+  if (typeof pdfjsLib !== 'undefined') {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+  }
+
+  // Drag & drop PDF
+  const drop = document.getElementById('pdfDrop');
+  if (drop) {
+    ['dragenter', 'dragover'].forEach(ev => {
+      drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+      drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('dragover'); });
+    });
+    drop.addEventListener('drop', e => {
+      const file = e.dataTransfer.files[0];
+      if (file) handlePDFFile({ target: { files: [file], value: '' } });
+    });
+  }
+
+  // Drag & drop batch
+  const batchDrop = document.getElementById('batchDrop');
+  if (batchDrop) {
+    ['dragenter', 'dragover'].forEach(ev => {
+      batchDrop.addEventListener(ev, e => { e.preventDefault(); batchDrop.classList.add('dragover'); });
+    });
+    ['dragleave', 'drop'].forEach(ev => {
+      batchDrop.addEventListener(ev, e => { e.preventDefault(); batchDrop.classList.remove('dragover'); });
+    });
+    batchDrop.addEventListener('drop', e => {
+      const files = e.dataTransfer.files;
+      if (files.length) handleBatchFiles({ target: { files, value: '' } });
+    });
+  }
+
+  // Check libraries
+  const status = document.getElementById('status');
+  const checks = [
+    { name: 'CryptoJS', ok: typeof CryptoJS !== 'undefined' },
+    { name: 'jsQR', ok: typeof jsQR !== 'undefined' },
+    { name: 'pdf.js', ok: typeof pdfjsLib !== 'undefined' },
+    { name: 'jsPDF', ok: typeof window.jspdf !== 'undefined' }
+  ];
+  const gagal = checks.filter(c => !c.ok);
+  if (gagal.length === 0) {
+    status.className = 'ok';
+    status.textContent = '✅ Siap digunakan';
+    setTimeout(() => status.style.display = 'none', 3000);
+  } else {
+    status.className = 'err';
+    status.innerHTML = '⚠️ Library belum siap: ' + gagal.map(c => c.name).join(', ');
+  }
+});
+
 async function handlePDFFile(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -439,7 +1053,6 @@ async function handlePDFFile(event) {
   const info    = document.getElementById('pdfInfo');
   const result  = document.getElementById('pdfResult');
 
-  preview.style.display = 'block';
   preview.innerHTML = '<div style="text-align:center; padding:20px;"><span class="spinner"></span> Memuat PDF...</div>';
   info.textContent = '';
   result.innerHTML = '';
@@ -464,7 +1077,7 @@ async function handlePDFFile(event) {
       const viewport = page.getViewport({ scale: 2.0 });
 
       const canvas = document.createElement('canvas');
-      canvas.width  = viewport.width;
+      canvas.width = viewport.width;
       canvas.height = viewport.height;
       canvas.style.maxWidth = '100%';
       canvas.style.marginBottom = '8px';
@@ -489,37 +1102,39 @@ async function handlePDFFile(event) {
     }
 
     if (scanResults.length === 0) {
-      result.innerHTML = `<div class="result-item error">❌ Tidak ada QR Code yang terdeteksi di ${totalPages} halaman PDF ini.</div>`;
+      result.innerHTML = '<div class="auth-badge invalid"><div class="auth-badge-icon">❌</div><div class="auth-badge-text"><div>TIDAK ADA QR DITEMUKAN</div><div class="auth-badge-sub">Dari ' + totalPages + ' halaman</div></div></div>';
       return;
     }
 
     const secret = document.getElementById('secretDecryptPdf').value;
-    let html = `<div style="margin-top:12px;"><b>🎯 Ditemukan ${scanResults.length} QR:</b></div>`;
+    let html = '';
+    let validCount = 0;
+    let invalidCount = 0;
 
     for (const sr of scanResults) {
       const res = doDecrypt(sr.data, secret);
       if (res.ok) {
-        let locked;
-        if (typeof res.data.locked === 'boolean') locked = res.data.locked;
-        else locked = secret.trim().length > 0;
-
-        html += `<div class="result-item success">
-          <b>✅ Halaman ${sr.page} — Verifikasi BERHASIL:</b> ${locked ? '🔒' : '⚠️'}<br/><br/>
-          <b>Nama</b>      : ${esc(res.data.nama)}<br/>
-          <b>Institusi</b> : ${esc(res.data.institusi)}<br/>
-          <b>Jabatan</b>   : ${esc(res.data.jabatan)}<br/>
-          <b>Tanggal</b>   : ${esc(res.data.tanggal)}<br/>
-          <b>Timestamp</b> : ${new Date(res.data.ts).toLocaleString('id-ID')}
-          ${res.data.pesan ? `<div class="msg-box">💬 <b>Pesan:</b> ${esc(res.data.pesan)}</div>` : ''}
-        </div>`;
+        validCount++;
+        html += buildAuthenticityBadge(res.data, secret);
+        html += buildResultCard(res.data, secret);
       } else {
-        html += `<div class="result-item error">
-          <b>❌ Halaman ${sr.page} — Gagal decrypt:</b> ${esc(res.error)}<br/>
-          <span style="font-size:11px; color:var(--text-muted);">Payload: ${esc(sr.data.substring(0, 60))}...</span>
-        </div>`;
+        invalidCount++;
+        html += `
+          <div class="auth-badge invalid">
+            <div class="auth-badge-icon">❌</div>
+            <div class="auth-badge-text">
+              <div>GAGAL VERIFIKASI — HALAMAN ${sr.page}</div>
+              <div class="auth-badge-sub">${esc(res.error)}</div>
+            </div>
+          </div>
+        `;
       }
     }
-    result.innerHTML = html;
+
+    const summary = `<div class="batch-summary ${invalidCount === 0 ? 'good' : 'bad'}">
+      📊 <b>Ringkasan:</b> ${validCount} valid, ${invalidCount} gagal dari ${scanResults.length} QR
+    </div>`;
+    result.innerHTML = summary + html;
 
   } catch (err) {
     console.error(err);
@@ -528,7 +1143,171 @@ async function handlePDFFile(event) {
     event.target.value = '';
   }
 }
+
+/* =====================================================================
+   TAB 3: BATCH MULTI-FILE
+   ===================================================================== */
+async function handleBatchFiles(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+
+  const result = document.getElementById('batchResult');
+  const secret = document.getElementById('secretBatch').value;
+
+  result.innerHTML = `<div class="batch-summary">⏳ Memproses ${files.length} file...</div>`;
+
+  const batchResults = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    result.innerHTML = `<div class="batch-summary">⏳ Memproses file ${i+1}/${files.length}: <b>${esc(file.name)}</b></div>`;
+
+    let qrData = null;
+    let error = null;
+
+    try {
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        qrData = await extractQRFromPDF(file);
+      } else if (file.type.startsWith('image/')) {
+        qrData = await extractQRFromImage(file);
+      } else {
+        error = 'Tipe file tidak didukung';
+      }
+    } catch (e) {
+      error = e.message;
+    }
+
+    if (!qrData) {
+      batchResults.push({
+        filename: file.name,
+        valid: false,
+        error: error || 'Tidak ada QR ditemukan'
+      });
+      continue;
+    }
+
+    const res = doDecrypt(qrData, secret);
+    if (res.ok) {
+      const d = res.data;
+      batchResults.push({
+        filename: file.name,
+        valid: true,
+        data: {
+          nama: d.nama || d.n,
+          institusi: d.institusi || d.i,
+          jabatan: d.jabatan || d.j,
+          tanggal: d.tanggal || d.t,
+          pesan: d.pesan || d.p,
+          ts: d.ts,
+          locked: typeof d.locked === 'boolean' ? d.locked : false
+        }
+      });
+    } else {
+      batchResults.push({
+        filename: file.name,
+        valid: false,
+        error: res.error
+      });
+    }
+  }
+
+  renderBatchResults(batchResults);
+  event.target.value = '';
+}
+
+function extractQRFromImage(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.getElementById('scanCanvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      try {
+        const code = jsQR(imageData.data, imageData.width, imageData.height);
+        if (code && code.data) resolve(code.data);
+        else resolve(null);
+      } catch (e) { reject(e); }
+    };
+    img.onerror = () => reject(new Error('Gagal load gambar'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function extractQRFromPDF(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const totalPages = pdf.numPages;
+
+  for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
+    const page = await pdf.getPage(pageNum);
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport }).promise;
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    try {
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code && code.data) return code.data;
+    } catch (e) { /* continue */ }
+  }
+  return null;
+}
+
+function renderBatchResults(results) {
+  const result = document.getElementById('batchResult');
+  const validCount = results.filter(r => r.valid).length;
+  const invalidCount = results.length - validCount;
+
+  let html = `<div class="batch-summary ${invalidCount === 0 ? 'good' : 'bad'}">
+    📊 <b>Ringkasan:</b> ${validCount} valid, ${invalidCount} gagal dari ${results.length} file
+  </div>`;
+
+  results.forEach((r, i) => {
+    if (r.valid) {
+      const d = r.data;
+      html += `
+        <div class="batch-item valid">
+          <b>✅ ${esc(r.filename)}</b>
+          ${d.locked ? ' 🔒' : ' ⚠️'}<br/>
+          <div style="margin-top:6px; font-size:12px; line-height:1.6;">
+            <b>Nama</b>      : ${esc(d.nama || '-')}<br/>
+            <b>Institusi</b> : ${esc(d.institusi || '-')}<br/>
+            <b>Jabatan</b>   : ${esc(d.jabatan || '-')}<br/>
+            <b>Tanggal</b>   : ${esc(d.tanggal || '-')}<br/>
+            ${d.ts ? `<b>Timestamp</b> : ${esc(formatTimestamp(d.ts))}<br/>` : ''}
+            ${d.pesan ? `<b>Pesan</b>     : <i>${esc(d.pesan)}</i>` : ''}
+          </div>
+        </div>
+      `;
+    } else {
+      html += `
+        <div class="batch-item invalid">
+          <b>❌ ${esc(r.filename)}</b><br/>
+          <span style="font-size:12px; color:var(--text-muted);">${esc(r.error)}</span>
+        </div>
+      `;
+    }
+  });
+
+  result.innerHTML = html;
+}
+
+/* =====================================================================
+   CLEANUP saat halaman di-close
+   ===================================================================== */
+window.addEventListener('beforeunload', () => {
+  if (cameraStream) {
+    cameraStream.getTracks().forEach(t => t.stop());
+  }
+});
 </script>
+
 <script src="disclaimer.js"></script>
 </body>
 </html>
