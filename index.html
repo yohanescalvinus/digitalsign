@@ -105,7 +105,7 @@
   button.secondary { background: var(--secondary); }
   button.secondary:hover { background: var(--secondary-hover); }
 
-  /* ============ PREVIEW: HANYA QR CODE ============ */
+  /* ============ PREVIEW: QR + NAMA OVERLAY ============ */
   #preview {
     margin-top: 24px;
     padding: 30px 20px;
@@ -120,14 +120,48 @@
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  #qrcode {
+
+  #qrWrapper {
     display: inline-block;
+    position: relative;
     padding: 16px;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.12);
   }
+  #qrcode { display: block; }
   #qrcode img, #qrcode canvas { display: block; }
+
+  /* Nama overlay di tengah QR — 2 baris support, BOLD */
+  #qrNameOverlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #ffffff;
+    color: #000000;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 900;              /* ⬅️ extra bold */
+    letter-spacing: 0.4px;
+    text-align: center;
+    line-height: 1.15;
+    max-width: 72%;
+    box-shadow: 0 0 0 4px #fff, 0 4px 12px rgba(0,0,0,0.18);
+    border: 2px solid #000;
+    pointer-events: none;
+    z-index: 2;
+    text-transform: uppercase;
+    font-family: 'Segoe UI', 'Arial Black', Arial, sans-serif;
+  }
+  #qrNameOverlay .qr-name-line {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 900;
+  }
 
   /* ============ PASSWORD ============ */
   .pw-wrap { position: relative; }
@@ -242,15 +276,18 @@
   <button class="secondary" onclick="downloadPNG()">⬇️ Download PNG</button>
   <button class="secondary" onclick="copyPayload()">📋 Copy Payload</button>
 
-  <!-- PREVIEW: HANYA QR CODE -->
+  <!-- PREVIEW: QR + NAMA OVERLAY -->
   <div id="preview">
-    <div id="qrcode"></div>
+    <div id="qrWrapper">
+      <div id="qrcode"></div>
+      <div id="qrNameOverlay"></div>
+    </div>
   </div>
 
   <p class="note">
     * Semua informasi tersimpan <b>di dalam QR Code</b> dalam bentuk terenkripsi AES-256.<br/>
     * File PNG disimpan dengan nama tanggal tanda tangan.<br/>
-    * Untuk verifikasi, buka aplikasi <b>yohanescalvinus.github.io/digitalsign/verifikasi.html</b> dan scan QR Code or PDF.
+    * Untuk verifikasi, buka aplikasi <b>verify.html</b> dan scan QR Code.
   </p>
 </div>
 
@@ -307,6 +344,58 @@ function updateLockIndicator(inputId, indicatorId) {
   }
 }
 
+/* =====================================================================
+   HELPER: Pecah nama jadi maksimal 2 baris
+   ===================================================================== */
+function splitNameIntoLines(nama, maxCharsPerLine) {
+  const clean = nama.trim().replace(/\s+/g, ' ');
+  if (!clean) return ['', ''];
+
+  // Cukup 1 baris?
+  if (clean.length <= maxCharsPerLine) {
+    return [clean, ''];
+  }
+
+  const words = clean.split(' ');
+
+  // Kalau cuma 1 kata panjang → potong 2 baris
+  if (words.length === 1) {
+    const line1 = clean.substring(0, maxCharsPerLine);
+    const rest = clean.substring(maxCharsPerLine);
+    if (rest.length <= maxCharsPerLine) {
+      return [line1, rest];
+    } else {
+      return [line1, rest.substring(0, maxCharsPerLine - 3) + '...'];
+    }
+  }
+
+  // Cari titik pemisah optimal (paling dekat tengah)
+  const targetMid = clean.length / 2;
+  let bestIdx = -1;
+  let bestDist = Infinity;
+  let charCount = 0;
+  for (let i = 0; i < words.length - 1; i++) {
+    charCount += words[i].length + 1;
+    const dist = Math.abs(charCount - targetMid);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestIdx = i;
+    }
+  }
+
+  let line1 = words.slice(0, bestIdx + 1).join(' ');
+  let line2 = words.slice(bestIdx + 1).join(' ');
+
+  if (line1.length > maxCharsPerLine) {
+    line1 = line1.substring(0, maxCharsPerLine - 3) + '...';
+  }
+  if (line2.length > maxCharsPerLine) {
+    line2 = line2.substring(0, maxCharsPerLine - 3) + '...';
+  }
+
+  return [line1, line2];
+}
+
 /* ============ INIT ============ */
 window.addEventListener('DOMContentLoaded', function () {
   const status = document.getElementById('status');
@@ -328,7 +417,9 @@ window.addEventListener('DOMContentLoaded', function () {
   updateLockIndicator('secret', 'lockIndicator');
 });
 
-/* ============ GENERATE — FOKUS HANYA QR CODE ============ */
+/* =====================================================================
+   GENERATE — QR + NAMA DI TENGAH (MAKS 2 BARIS)
+   ===================================================================== */
 function generateSignature() {
   try {
     const nama      = document.getElementById('nama').value.trim();
@@ -349,7 +440,6 @@ function generateSignature() {
 
     const locked = secretRaw.trim().length > 0;
 
-    // Konfirmasi kalau tidak terkunci
     if (!locked) {
       const ok = confirm(
         '⚠️ Anda belum memasukkan password.\n\n' +
@@ -368,7 +458,6 @@ function generateSignature() {
 
     const secret = locked ? secretRaw.trim() : DEFAULT_SECRET;
 
-    // Payload lengkap tersembunyi di dalam QR
     const payload = JSON.stringify({
       nama,
       institusi,
@@ -381,7 +470,7 @@ function generateSignature() {
 
     const encrypted = CryptoJS.AES.encrypt(payload, secret).toString();
 
-    // Render QR BESAR (360px) — fokus utama, tanpa caption
+    // Render QR — pakai error correction LEVEL H (30%)
     const qrContainer = document.getElementById('qrcode');
     qrContainer.innerHTML = '';
     new QRCode(qrContainer, {
@@ -390,16 +479,50 @@ function generateSignature() {
       height: 360,
       colorDark: '#000000',
       colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
+      correctLevel: QRCode.CorrectLevel.H   // WAJIB H!
     });
 
-    // Simpan payload + tanggal untuk tombol Download / Copy
+    // Tampilkan nama di tengah QR — max 2 baris, bold
+    const overlay = document.getElementById('qrNameOverlay');
+
+    // Tentukan font size + kapasitas karakter per baris
+    let fontSize = 17;
+    let maxCharsPerLine = 18;
+
+    if (nama.length > 36) {
+      fontSize = 12;
+      maxCharsPerLine = 26;
+    } else if (nama.length > 24) {
+      fontSize = 14;
+      maxCharsPerLine = 22;
+    } else if (nama.length > 14) {
+      fontSize = 16;
+      maxCharsPerLine = 20;
+    }
+
+    overlay.style.fontSize = fontSize + 'px';
+
+    const [line1, line2] = splitNameIntoLines(nama, maxCharsPerLine);
+
+    overlay.innerHTML = '';
+    const el1 = document.createElement('span');
+    el1.className = 'qr-name-line';
+    el1.textContent = line1;
+    overlay.appendChild(el1);
+
+    if (line2) {
+      const el2 = document.createElement('span');
+      el2.className = 'qr-name-line';
+      el2.textContent = line2;
+      overlay.appendChild(el2);
+    }
+
+    // Simpan data untuk download/copy
     qrContainer.setAttribute('data-encrypted', encrypted);
     qrContainer.setAttribute('data-tanggal', tanggal);
 
     document.getElementById('preview').style.display = 'block';
 
-    // Auto scroll ke preview
     setTimeout(() => {
       document.getElementById('preview').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
@@ -410,7 +533,9 @@ function generateSignature() {
   }
 }
 
-/* ============ DOWNLOAD PNG — HANYA QR, NAMA FILE = TANGGAL ============ */
+/* =====================================================================
+   DOWNLOAD PNG — QR + NAMA 2 BARIS BOLD
+   ===================================================================== */
 function downloadPNG() {
   const qrEl = document.querySelector('#qrcode canvas') || document.querySelector('#qrcode img');
   if (!qrEl) { alert('Generate QR dulu.'); return; }
@@ -418,10 +543,11 @@ function downloadPNG() {
   const tanggal = document.getElementById('qrcode').getAttribute('data-tanggal');
   if (!tanggal) { alert('Data tanggal tidak ditemukan. Generate ulang.'); return; }
 
+  const nama = document.getElementById('nama').value.trim();
+
   const qrWidth  = qrEl.width  || qrEl.naturalWidth  || 360;
   const qrHeight = qrEl.height || qrEl.naturalHeight || 360;
 
-  // Padding minimalis — hanya QR tanpa teks tambahan
   const padding = 20;
 
   const canvas = document.getElementById('canvas');
@@ -434,16 +560,97 @@ function downloadPNG() {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Hanya QR Code — tidak ada teks lain
+  // Gambar QR
   ctx.drawImage(qrEl, padding, padding);
 
-  // Nama file = tanggal (format YYYY-MM-DD)
-  const filename = tanggal + '.png';
+  // Gambar nama di tengah QR
+  const qrCenterX = padding + qrWidth / 2;
+  const qrCenterY = padding + qrHeight / 2;
 
+  // Font size + kapasitas karakter (SAMA dengan preview)
+  let fontSize = 21;
+  let maxCharsPerLine = 18;
+
+  if (nama.length > 36) {
+    fontSize = 15;
+    maxCharsPerLine = 26;
+  } else if (nama.length > 24) {
+    fontSize = 17;
+    maxCharsPerLine = 22;
+  } else if (nama.length > 14) {
+    fontSize = 19;
+    maxCharsPerLine = 20;
+  }
+
+  const fontStr = '900 ' + fontSize + 'px "Segoe UI", "Arial Black", Arial, sans-serif';
+  ctx.font = fontStr;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  const [line1, line2] = splitNameIntoLines(nama, maxCharsPerLine);
+
+  // Hitung ukuran kotak putih
+  const lineHeight = fontSize * 1.15;
+  const totalTextHeight = line2 ? lineHeight * 2 : lineHeight;
+
+  const text1Metrics = ctx.measureText(line1.toUpperCase());
+  const text2Metrics = line2 ? ctx.measureText(line2.toUpperCase()) : { width: 0 };
+  const maxTextWidth = Math.max(text1Metrics.width, text2Metrics.width);
+
+  const boxPaddingX = 16;
+  const boxPaddingY = 12;
+  const boxWidth  = maxTextWidth + boxPaddingX * 2;
+  const boxHeight = totalTextHeight + boxPaddingY * 2;
+  const boxX = qrCenterX - boxWidth / 2;
+  const boxY = qrCenterY - boxHeight / 2;
+
+  // Kotak putih dengan border hitam
+  drawRoundedRect(ctx, boxX, boxY, boxWidth, boxHeight, 10, '#ffffff', '#000000', 3);
+
+  // Gambar teks (BOLD)
+  ctx.fillStyle = '#000000';
+  ctx.font = fontStr;
+
+  if (line2) {
+    const line1Y = qrCenterY - lineHeight / 2;
+    const line2Y = qrCenterY + lineHeight / 2;
+    ctx.fillText(line1.toUpperCase(), qrCenterX, line1Y);
+    ctx.fillText(line2.toUpperCase(), qrCenterX, line2Y);
+  } else {
+    ctx.fillText(line1.toUpperCase(), qrCenterX, qrCenterY);
+  }
+
+  // Download dengan nama file = tanggal
+  const filename = tanggal + '.png';
   const link = document.createElement('a');
   link.download = filename;
   link.href = canvas.toDataURL('image/png');
   link.click();
+}
+
+/* ===== Helper: Rounded rectangle ===== */
+function drawRoundedRect(ctx, x, y, w, h, r, fillColor, strokeColor, strokeWidth) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+
+  if (fillColor) {
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+  }
+  if (strokeColor && strokeWidth) {
+    ctx.lineWidth = strokeWidth;
+    ctx.strokeStyle = strokeColor;
+    ctx.stroke();
+  }
 }
 
 /* ============ COPY PAYLOAD ============ */
@@ -458,7 +665,6 @@ function copyPayload() {
       alert('✅ Payload terenkripsi berhasil di-copy ke clipboard.\n\nTempel di verify.html untuk verifikasi.');
     })
     .catch(() => {
-      // Fallback browser lama
       const ta = document.createElement('textarea');
       ta.value = encrypted;
       ta.style.position = 'fixed';
@@ -475,7 +681,8 @@ function copyPayload() {
     });
 }
 </script>
+
+<!-- ⬇️ Disclaimer modal (opsional) -->
 <script src="disclaimer.js"></script>
-</body>
 </body>
 </html>
