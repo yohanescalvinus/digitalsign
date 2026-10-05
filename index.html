@@ -106,7 +106,6 @@
   button.secondary:hover { background: var(--secondary-hover); }
   button:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  /* Grid untuk preset */
   .grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -143,7 +142,6 @@
   #qrcode { display: block; }
   #qrcode img, #qrcode canvas { display: block; }
 
-  /* Nama di BAWAH QR */
   #qrNameBelow {
     margin-top: 14px;
     padding-top: 12px;
@@ -166,7 +164,6 @@
     font-weight: 900;
   }
 
-  /* Info ukuran */
   #sizeInfo {
     margin-top: 18px;
     padding: 10px 14px;
@@ -197,9 +194,7 @@
     margin-bottom: 10px;
     align-items: flex-start;
   }
-  .footer-item:last-child {
-    margin-bottom: 0;
-  }
+  .footer-item:last-child { margin-bottom: 0; }
   .footer-num {
     font-weight: 700;
     color: var(--primary);
@@ -212,13 +207,8 @@
     font-weight: 600;
     word-break: break-all;
   }
-  .footer-item a:hover {
-    text-decoration: underline;
-  }
-  .footer-item b {
-    color: var(--text);
-    font-weight: 700;
-  }
+  .footer-item a:hover { text-decoration: underline; }
+  .footer-item b { color: var(--text); font-weight: 700; }
   .footer-warning {
     padding: 10px 12px;
     background: var(--warn-bg);
@@ -226,33 +216,46 @@
     border-left: 3px solid var(--warn-border);
     color: var(--warn-text);
   }
-  .footer-warning .footer-num {
-    color: var(--warn-text);
-  }
-  .footer-warning b {
-    color: var(--warn-text);
-    font-weight: 800;
-  }
+  .footer-warning .footer-num { color: var(--warn-text); }
+  .footer-warning b { color: var(--warn-text); font-weight: 800; }
 
-  /* ============ PASSWORD ============ */
-  .pw-wrap { position: relative; }
+  /* ============ PASSWORD (FIXED) ============ */
+  .pw-wrap {
+    position: relative;
+    display: block;
+    width: 100%;
+  }
+  .pw-wrap input {
+    padding-right: 46px;   /* ruang untuk tombol */
+  }
   .pw-toggle {
     position: absolute;
-    right: 10px;
+    right: 6px;
     top: 50%;
     transform: translateY(-50%);
     cursor: pointer;
-    font-size: 16px;
+    font-size: 18px;
     user-select: none;
     color: var(--text-muted);
-    background: none;
-    padding: 4px;
+    background: transparent;
+    padding: 6px 10px;
     border: none;
     margin: 0;
     width: auto;
     height: auto;
+    z-index: 10;
+    pointer-events: auto;
+    border-radius: 4px;
+    line-height: 1;
+    box-shadow: none;
+    transition: background 0.15s;
   }
-  .pw-toggle:hover { background: none; }
+  .pw-toggle:hover {
+    background: rgba(11, 94, 215, 0.1);
+    color: var(--primary);
+  }
+  .pw-toggle:active { transform: translateY(-50%) scale(0.92); }
+
   .lock-indicator {
     font-size: 11px;
     margin-top: 6px;
@@ -266,7 +269,6 @@
   .lock-indicator.medium { background: var(--info-bg); color: var(--primary); border-left-color: var(--primary); }
   .lock-indicator.strong { background: var(--success-bg); color: var(--success); border-left-color: var(--success); }
 
-  /* ============ THEME TOGGLE ============ */
   .theme-toggle {
     position: fixed;
     top: 20px;
@@ -289,7 +291,6 @@
   }
   .theme-toggle:hover { transform: scale(1.1); background: var(--card); }
 
-  /* ============ STATUS ============ */
   #status {
     margin-top: 10px;
     font-size: 12px;
@@ -332,7 +333,7 @@
     <div class="pw-wrap">
       <input type="password" id="secret" placeholder="Masukkan password untuk mengunci dokumen digital sign Anda!"
              oninput="updateLockIndicator('secret', 'lockIndicator')" />
-      <button type="button" class="pw-toggle" onclick="togglePassword('secret', this)">👁️</button>
+      <button type="button" class="pw-toggle" id="pwToggleBtn" title="Lihat/Sembunyikan password">👁️</button>
     </div>
     <div id="lockIndicator" class="lock-indicator"></div>
   </div>
@@ -365,7 +366,6 @@
   <button class="secondary" onclick="downloadPNG()">⬇️ Download PNG</button>
   <button class="secondary" onclick="copyPayload()">📋 Copy Payload</button>
 
-  <!-- PREVIEW -->
   <div id="preview">
     <div id="qrWrapper">
       <div id="qrcode"></div>
@@ -374,7 +374,6 @@
     <div id="sizeInfo"></div>
   </div>
 
-  <!-- FOOTER INFORMATION -->
   <div class="footer-info">
     <div class="footer-item">
       <span class="footer-num">1.</span>
@@ -445,12 +444,34 @@ function onDpiChange() {
   }
 }
 
-/* ============ PASSWORD HELPERS ============ */
-function togglePassword(id, btn) {
-  const i = document.getElementById(id);
-  if (i.type === 'password') { i.type = 'text'; btn.textContent = '🙈'; }
-  else { i.type = 'password'; btn.textContent = '👁️'; }
+/* =====================================================================
+   PASSWORD TOGGLE — pakai addEventListener (lebih aman dari onclick)
+   ===================================================================== */
+function setupPasswordToggle() {
+  const btn = document.getElementById('pwToggleBtn');
+  const input = document.getElementById('secret');
+  if (!btn || !input) {
+    console.warn('Password toggle: elemen tidak ditemukan');
+    return;
+  }
+  btn.addEventListener('click', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (input.type === 'password') {
+      input.type = 'text';
+      btn.textContent = '🙈';
+      btn.title = 'Sembunyikan password';
+    } else {
+      input.type = 'password';
+      btn.textContent = '👁️';
+      btn.title = 'Lihat password';
+    }
+    console.log('Password visibility toggled →', input.type);
+  });
+  console.log('✅ Password toggle siap');
 }
+
+/* ============ PASSWORD INDICATOR ============ */
 function updateLockIndicator(inputId, indicatorId) {
   const val = document.getElementById(inputId).value.trim();
   const el = document.getElementById(indicatorId);
@@ -467,6 +488,22 @@ function updateLockIndicator(inputId, indicatorId) {
     el.classList.add('strong');
     el.innerHTML = '🔒 Password kuat — QR Code aman terkunci.';
   }
+}
+
+/* =====================================================================
+   TANGGAL HARI INI — pakai local timezone (fix bug di HP/Firefox)
+   ===================================================================== */
+function setTodayDate() {
+  const el = document.getElementById('tanggal');
+  if (!el) return;
+  const now = new Date();
+  // Format manual YYYY-MM-DD berdasarkan LOCAL time (bukan UTC)
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const today = year + '-' + month + '-' + day;
+  el.value = today;
+  console.log('📅 Tanggal hari ini:', today);
 }
 
 /* =====================================================================
@@ -518,8 +555,23 @@ function splitNameIntoLines(nama, maxCharsPerLine) {
   return [line1, line2];
 }
 
+/* =====================================================================
+   HELPER: Format timestamp
+   ===================================================================== */
+function formatTimestamp(ts) {
+  const d = new Date(ts);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  const hour = String(d.getHours()).padStart(2, '0');
+  const minute = String(d.getMinutes()).padStart(2, '0');
+  const second = String(d.getSeconds()).padStart(2, '0');
+  return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
+
 /* ============ INIT ============ */
 window.addEventListener('DOMContentLoaded', function () {
+  // Cek library
   const status = document.getElementById('status');
   const checks = [
     { name: 'CryptoJS', ok: typeof CryptoJS !== 'undefined' },
@@ -535,9 +587,22 @@ window.addEventListener('DOMContentLoaded', function () {
     status.innerHTML = '❌ Library gagal dimuat: <b>' + gagal.map(c => c.name).join(', ') + '</b>';
   }
 
-  document.getElementById('tanggal').valueAsDate = new Date();
+  // FIX 1: Setup password toggle
+  setupPasswordToggle();
+
+  // FIX 2: Set tanggal hari ini dengan format manual
+  setTodayDate();
+
+  // Indikator password
   updateLockIndicator('secret', 'lockIndicator');
+
+  // Recalc ukuran
   recalcSize();
+
+  console.log('🚀 Aplikasi siap. Log untuk debug:');
+  console.log('- CryptoJS:', typeof CryptoJS);
+  console.log('- QRCode:', typeof QRCode);
+  console.log('- Tanggal default:', document.getElementById('tanggal').value);
 });
 
 /* =====================================================================
@@ -581,6 +646,9 @@ function generateSignature() {
 
     const secret = locked ? secretRaw.trim() : DEFAULT_SECRET;
 
+    // FIX 3: timestamp SELALU disimpan
+    const ts = Date.now();
+
     const payload = JSON.stringify({
       nama,
       institusi,
@@ -588,12 +656,12 @@ function generateSignature() {
       tanggal,
       pesan: pesan || '',
       locked: locked,
-      ts: Date.now()
+      ts: ts
     });
 
     const encrypted = CryptoJS.AES.encrypt(payload, secret).toString();
 
-    // Render QR ke DOM — pakai ukuran pixel asli (high-res)
+    // Render QR
     const qrContainer = document.getElementById('qrcode');
     qrContainer.innerHTML = '';
     new QRCode(qrContainer, {
@@ -602,10 +670,9 @@ function generateSignature() {
       height: currentQrSizePx,
       colorDark: '#000000',
       colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.L   // LEVEL L — grid PALING BESAR
+      correctLevel: QRCode.CorrectLevel.L
     });
 
-    // Kecilkan tampilan preview saja
     const previewMaxWidth = Math.min(currentQrSizePx, 320);
     const canvasEl = qrContainer.querySelector('canvas') || qrContainer.querySelector('img');
     if (canvasEl) {
@@ -639,12 +706,15 @@ function generateSignature() {
 
     qrContainer.setAttribute('data-encrypted', encrypted);
     qrContainer.setAttribute('data-tanggal', tanggal);
+    qrContainer.setAttribute('data-timestamp', ts);
 
+    // Info ukuran + timestamp
     const sizeInfo = document.getElementById('sizeInfo');
     sizeInfo.innerHTML = `
       📐 <b>Ukuran cetak: ${currentQrSizeCm}×${currentQrSizeCm} cm</b> @ ${DPI} DPI<br/>
       📏 PNG: ${currentQrSizePx}×${currentQrSizePx} pixel (QR saja)<br/>
       🎯 Insert ke Word/PDF → otomatis ${currentQrSizeCm}×${currentQrSizeCm} cm<br/>
+      ⏱️ <b>Timestamp:</b> ${formatTimestamp(ts)}<br/>
       ✅ Error Correction Level L — grid paling besar, sangat mudah discan
     `;
 
@@ -654,6 +724,8 @@ function generateSignature() {
       document.getElementById('preview').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 100);
 
+    console.log('✅ QR Generated. Timestamp:', formatTimestamp(ts));
+
   } catch (err) {
     console.error(err);
     alert('Error: ' + err.message);
@@ -661,7 +733,7 @@ function generateSignature() {
 }
 
 /* =====================================================================
-   DOWNLOAD PNG — HIGH RES + METADATA DPI
+   DOWNLOAD PNG
    ===================================================================== */
 function downloadPNG() {
   const tanggal = document.getElementById('qrcode').getAttribute('data-tanggal');
@@ -670,7 +742,6 @@ function downloadPNG() {
 
   const nama = document.getElementById('nama').value.trim();
 
-  // Render QR baru di canvas offscreen dengan ukuran ASLI
   const qrRenderCanvas = document.createElement('canvas');
   qrRenderCanvas.width = currentQrSizePx;
   qrRenderCanvas.height = currentQrSizePx;
@@ -693,7 +764,6 @@ function downloadPNG() {
     qrRenderCanvas.getContext('2d').drawImage(qrEl, 0, 0, currentQrSizePx, currentQrSizePx);
   }
 
-  // Hitung ukuran canvas final
   const qrPx = currentQrSizePx;
   const padding = Math.round(qrPx * 0.06);
   const nameAreaHeight = Math.round(qrPx * 0.20);
@@ -704,14 +774,11 @@ function downloadPNG() {
 
   const ctx = canvas.getContext('2d');
 
-  // Background putih
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Gambar QR
   ctx.drawImage(qrRenderCanvas, padding, padding, qrPx, qrPx);
 
-  // Garis pemisah
   const lineY = padding + qrPx + Math.round(padding * 0.6);
   ctx.strokeStyle = '#000000';
   ctx.lineWidth = Math.max(2, Math.round(qrPx * 0.006));
@@ -720,7 +787,6 @@ function downloadPNG() {
   ctx.lineTo(canvas.width - padding, lineY);
   ctx.stroke();
 
-  // Nama di bawah QR
   let fontSize = Math.round(qrPx * 0.075);
   if (nama.length > 24) fontSize = Math.round(qrPx * 0.060);
   if (nama.length > 36) fontSize = Math.round(qrPx * 0.050);
@@ -747,11 +813,9 @@ function downloadPNG() {
     ctx.fillText(line1.toUpperCase(), canvas.width / 2, nameStartY + lineHeight / 2);
   }
 
-  // Inject metadata DPI ke PNG
   const dataUrl = canvas.toDataURL('image/png');
   const pngWithDpi = setPngDpi(dataUrl, DPI);
 
-  // Download
   const filename = tanggal + '_' + currentQrSizeCm + 'x' + currentQrSizeCm + 'cm_' + DPI + 'dpi.png';
   const link = document.createElement('a');
   link.download = filename;
@@ -850,4 +914,26 @@ function copyPayload() {
   }
   navigator.clipboard.writeText(encrypted)
     .then(() => {
-      alert('✅ Payload terenkripsi berhasil di-copy.\n\nTempel
+      alert('✅ Payload terenkripsi berhasil di-copy.\n\nTempel di verify.html untuk verifikasi.');
+    })
+    .catch(() => {
+      const ta = document.createElement('textarea');
+      ta.value = encrypted;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        alert('✅ Payload berhasil di-copy.');
+      } catch (e) {
+        alert('Gagal copy. Gunakan tombol Download PNG.');
+      }
+      document.body.removeChild(ta);
+    });
+}
+</script>
+
+<script src="disclaimer.js"></script>
+</body>
+</html>
