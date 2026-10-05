@@ -28,8 +28,8 @@
     --shadow: rgba(0,0,0,0.1);
     --preview-bg: #f8f9ff;
     --preview-border: #0b5ed7;
-    --qr-bg: #ffffff;         /* QR wrapper selalu putih */
-    --qr-fg: #000000;         /* QR selalu hitam */
+    --qr-bg: #ffffff;
+    --qr-fg: #000000;
   }
   [data-theme="dark"] {
     --bg: #121212;
@@ -54,8 +54,8 @@
     --shadow: rgba(0,0,0,0.5);
     --preview-bg: #1a2a3d;
     --preview-border: #4d9fff;
-    --qr-bg: #ffffff;         /* tetap putih — KRITIS untuk QR */
-    --qr-fg: #000000;         /* tetap hitam — KRITIS untuk QR */
+    --qr-bg: #ffffff;
+    --qr-fg: #000000;
   }
 
   * { box-sizing: border-box; transition: background-color 0.25s, color 0.25s, border-color 0.25s; }
@@ -158,8 +158,8 @@
 
   #qrWrapper {
     display: inline-block;
-    padding: clamp(10px, 2.5vw, 16px);
-    background: var(--qr-bg);       /* selalu putih */
+    padding: clamp(8px, 2vw, 12px);
+    background: var(--qr-bg);
     border-radius: 12px;
     box-shadow: 0 6px 20px rgba(0,0,0,0.12);
     text-align: center;
@@ -170,20 +170,19 @@
     display: block;
     max-width: 100%;
     height: auto;
-    /* QR selalu hitam-putih, tidak terpengaruh dark mode */
     image-rendering: pixelated;
   }
 
+  /* Nama di bawah QR — TANPA garis, jarak antar baris SAMA dengan jarak QR */
   #qrNameBelow {
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 2px solid #000;
+    margin-top: 2px;
+    padding-top: 0;
     color: #000000;
     font-size: clamp(14px, 3.5vw, 20px);
     font-weight: 900;
     letter-spacing: 0.5px;
     text-align: center;
-    line-height: 1.2;
+    line-height: 1.05;
     text-transform: uppercase;
     font-family: 'Segoe UI', 'Arial Black', Arial, sans-serif;
     max-width: 100%;
@@ -194,6 +193,7 @@
   #qrNameBelow .qr-name-line {
     display: block;
     font-weight: 900;
+    line-height: 1.05;
   }
 
   #sizeInfo {
@@ -238,7 +238,7 @@
     display: block;
   }
 
-  /* ============ FOOTER INFO ============ */
+  /* ============ FOOTER INFO (FIXED) ============ */
   .footer-info {
     margin-top: 20px;
     padding: 16px 18px;
@@ -254,6 +254,8 @@
     gap: 8px;
     margin-bottom: 10px;
     align-items: flex-start;
+    word-break: normal;
+    overflow-wrap: break-word;
   }
   .footer-item:last-child { margin-bottom: 0; }
   .footer-num {
@@ -266,7 +268,10 @@
     color: var(--primary);
     text-decoration: none;
     font-weight: 600;
-    word-break: break-all;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -webkit-hyphens: none;
+    hyphens: none;
   }
   .footer-item a:hover { text-decoration: underline; }
   .footer-item b { color: var(--text); font-weight: 700; }
@@ -441,7 +446,6 @@
     </div>
   </div>
 
-  <!-- CAPACITY INDICATOR -->
   <div id="capacityIndicator"></div>
 
   <button onclick="generateSignature()">🔏 Generate QR</button>
@@ -485,7 +489,6 @@ const DEFAULT_SECRET = 'DIGITAL-SIGNATURE-DEFAULT-KEY-2024';
 let currentQrSizeCm = 3;
 let DPI = 600;
 let currentQrSizePx = 712;
-let livePreviewActive = false;
 let debounceTimer = null;
 const DEBOUNCE_MS = 300;
 
@@ -498,47 +501,35 @@ function detectSystemTheme() {
   }
   return 'light';
 }
-
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   const btn = document.getElementById('themeBtn');
   if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
   localStorage.setItem('theme', theme);
 }
-
 function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme') || 'light';
   const newTheme = cur === 'dark' ? 'light' : 'dark';
   applyTheme(newTheme);
-  // Hapus flag "auto" karena user sudah manual override
   localStorage.setItem('themeManual', 'true');
 }
-
 (function initTheme() {
   const manual = localStorage.getItem('themeManual');
   const saved = localStorage.getItem('theme');
   let theme;
-  if (manual === 'true' && saved) {
-    theme = saved;
-  } else {
-    theme = detectSystemTheme();
-  }
+  if (manual === 'true' && saved) theme = saved;
+  else theme = detectSystemTheme();
   document.documentElement.setAttribute('data-theme', theme);
   window.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('themeBtn');
     if (btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
   });
-
-  // Listen perubahan tema sistem (kalau user tidak manual override)
   if (window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
       const isManual = localStorage.getItem('themeManual') === 'true';
-      if (!isManual) {
-        applyTheme(e.matches ? 'dark' : 'light');
-      }
+      if (!isManual) applyTheme(e.matches ? 'dark' : 'light');
     });
   }
-  console.log('🎨 Tema:', theme, '(manual:', manual === 'true', ')');
 })();
 
 /* ============ PRESET SIZE & DPI ============ */
@@ -547,9 +538,7 @@ function recalcSize() {
   currentQrSizePx = Math.round(currentQrSizePx / 4) * 4;
 }
 
-/* =====================================================================
-   PASSWORD TOGGLE
-   ===================================================================== */
+/* ============ PASSWORD TOGGLE ============ */
 function setupPasswordToggle() {
   const btn = document.getElementById('pwToggleBtn');
   const input = document.getElementById('secret');
@@ -642,7 +631,7 @@ function formatTimestamp(ts) {
 }
 
 /* =====================================================================
-   AUTO-DETECT KAPASITAS
+   BUILD PAYLOAD
    ===================================================================== */
 function buildPayload() {
   const nama      = document.getElementById('nama').value.trim();
@@ -666,12 +655,13 @@ function buildPayload() {
   return { payload, locked, secret, ts, nama, institusi, jabatan, tanggal, pesan };
 }
 
+/* =====================================================================
+   AUTO-DETECT KAPASITAS
+   ===================================================================== */
 function estimateEncryptedLength(payload, secret) {
-  // AES + Base64: panjang ≈ (payload length + padding + salt + header) × 1.33
-  // Estimasi kasar: AES block 16 byte, padding sampai kelipatan 16
   const len = payload.length;
-  const saltAndHeader = 16 + 16;  // salt 8 + header "Salted__" 8 + IV 16
-  const padded = Math.ceil((len + 1) / 16) * 16;  // padding PKCS7
+  const saltAndHeader = 16 + 16;
+  const padded = Math.ceil((len + 1) / 16) * 16;
   const total = saltAndHeader + padded;
   const base64Len = Math.ceil(total / 3) * 4;
   return base64Len;
@@ -683,7 +673,6 @@ function updateCapacityIndicator() {
 
   const data = buildPayload();
 
-  // Kalau belum ada data sama sekali, sembunyikan
   if (!data.nama && !data.institusi && !data.jabatan) {
     ind.className = '';
     ind.style.display = 'none';
@@ -691,11 +680,8 @@ function updateCapacityIndicator() {
   }
 
   const encryptedLen = estimateEncryptedLength(data.payload, data.secret);
-
-  // Batas QR Code128... maksudnya QR Code versi 40 (terbesar) @ Level L = 2953 byte
-  // Tapi pakai angka aman: 2000 byte base64 ≈ 1500 byte data
   const QR_LIMIT_L = 2953;
-  const SAFE_LIMIT = 2500;   // aman dengan margin
+  const SAFE_LIMIT = 2500;
 
   let level, msg;
   if (encryptedLen <= SAFE_LIMIT * 0.7) {
@@ -703,10 +689,10 @@ function updateCapacityIndicator() {
     msg = `✅ <b>Kapasitas OK</b> — payload ±${encryptedLen} karakter (maks ~${QR_LIMIT_L})`;
   } else if (encryptedLen <= SAFE_LIMIT) {
     level = 'warn';
-    msg = `⚠️ <b>Mendekati batas</b> — payload ±${encryptedLen} karakter. QR akan sangat padat, sulit discan di ukuran kecil.`;
+    msg = `⚠️ <b>Mendekati batas</b> — payload ±${encryptedLen} karakter. QR akan sangat padat.`;
   } else {
     level = 'err';
-    msg = `❌ <b>Terlalu panjang!</b> — payload ±${encryptedLen} karakter (maks ~${QR_LIMIT_L}). Persingkat pesan atau data.`;
+    msg = `❌ <b>Terlalu panjang!</b> — payload ±${encryptedLen} karakter (maks ~${QR_LIMIT_L}). Persingkat pesan.`;
   }
 
   ind.className = level;
@@ -715,7 +701,7 @@ function updateCapacityIndicator() {
 }
 
 /* =====================================================================
-   LIVE PREVIEW — Nama di bawah QR update real-time
+   LIVE PREVIEW — Nama di bawah QR
    ===================================================================== */
 function updateNamePreviewOnly() {
   const nama = document.getElementById('nama').value.trim();
@@ -756,34 +742,24 @@ function doLiveRender() {
   const jabatan = document.getElementById('jabatan').value.trim();
   const tanggal = document.getElementById('tanggal').value;
 
-  // Minimal harus ada nama (untuk preview nama)
   if (!nama) {
-    // Sembunyikan preview kalau belum ada nama
     if (document.getElementById('preview').style.display !== 'block') return;
   }
 
-  // Update nama di bawah QR
   updateNamePreviewOnly();
-
-  // Update kapasitas
   updateCapacityIndicator();
 
-  // Kalau data lengkap, update QR
   if (nama && institusi && jabatan && tanggal) {
-    renderQR(false);  // false = tidak tampilkan alert
+    renderQR(false);
   }
 
-  // Tampilkan badge LIVE
   const badge = document.getElementById('liveBadge');
   if (badge) badge.style.display = 'inline-block';
 }
 
 function scheduleLiveRender() {
   if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    doLiveRender();
-    livePreviewActive = true;
-  }, DEBOUNCE_MS);
+  debounceTimer = setTimeout(doLiveRender, DEBOUNCE_MS);
 }
 
 /* =====================================================================
@@ -810,7 +786,6 @@ window.addEventListener('DOMContentLoaded', function () {
   updateLockIndicator();
   recalcSize();
 
-  // ===== SETUP LIVE PREVIEW LISTENERS =====
   const liveInputs = ['nama', 'institusi', 'jabatan', 'tanggal', 'secret', 'pesan'];
   liveInputs.forEach(id => {
     const el = document.getElementById(id);
@@ -820,7 +795,6 @@ window.addEventListener('DOMContentLoaded', function () {
     }
   });
 
-  // Preset dropdown
   document.getElementById('sizePreset').addEventListener('change', function () {
     currentQrSizeCm = parseInt(this.value, 10) || 3;
     recalcSize();
@@ -832,14 +806,13 @@ window.addEventListener('DOMContentLoaded', function () {
     scheduleLiveRender();
   });
 
-  // Password indicator — update live
   document.getElementById('secret').addEventListener('input', updateLockIndicator);
 
   console.log('🚀 Aplikasi siap. Live preview aktif.');
 });
 
 /* =====================================================================
-   RENDER QR (dipakai oleh live preview & generate manual)
+   RENDER QR
    ===================================================================== */
 function renderQR(showAlert) {
   try {
@@ -855,7 +828,6 @@ function renderQR(showAlert) {
       return false;
     }
 
-    // Cek kapasitas
     const encryptedLen = estimateEncryptedLength(data.payload, data.secret);
     if (encryptedLen > 2953) {
       if (showAlert) alert('❌ Payload terlalu panjang! Persingkat pesan atau data.');
@@ -864,7 +836,6 @@ function renderQR(showAlert) {
 
     const encrypted = CryptoJS.AES.encrypt(data.payload, data.secret).toString();
 
-    // Render QR
     const qrContainer = document.getElementById('qrcode');
     qrContainer.innerHTML = '';
     new QRCode(qrContainer, {
@@ -876,7 +847,6 @@ function renderQR(showAlert) {
       correctLevel: QRCode.CorrectLevel.L
     });
 
-    // Scale preview di layar
     const previewMaxWidth = Math.min(currentQrSizePx, 320, window.innerWidth - 100);
     const canvasEl = qrContainer.querySelector('canvas') || qrContainer.querySelector('img');
     if (canvasEl) {
@@ -884,15 +854,12 @@ function renderQR(showAlert) {
       canvasEl.style.height = previewMaxWidth + 'px';
     }
 
-    // Update nama
     updateNamePreviewOnly();
 
-    // Simpan data
     qrContainer.setAttribute('data-encrypted', encrypted);
     qrContainer.setAttribute('data-tanggal', data.tanggal);
     qrContainer.setAttribute('data-timestamp', data.ts);
 
-    // Info ukuran
     const sizeInfo = document.getElementById('sizeInfo');
     sizeInfo.innerHTML = `
       📐 <b>Ukuran cetak: ${currentQrSizeCm}×${currentQrSizeCm} cm</b> @ ${DPI} DPI<br/>
@@ -902,7 +869,6 @@ function renderQR(showAlert) {
       ✅ Error Correction Level L — grid paling besar, sangat mudah discan
     `;
 
-    // Tampilkan preview
     const previewEl = document.getElementById('preview');
     if (previewEl.style.display !== 'block') {
       previewEl.style.display = 'block';
@@ -917,7 +883,7 @@ function renderQR(showAlert) {
 }
 
 /* =====================================================================
-   GENERATE MANUAL (klik tombol)
+   GENERATE MANUAL
    ===================================================================== */
 function generateSignature() {
   const data = buildPayload();
@@ -928,9 +894,7 @@ function generateSignature() {
     return;
   }
 
-  const locked = data.locked;
-
-  if (!locked) {
+  if (!data.locked) {
     const ok = confirm(
       '⚠️ Anda belum memasukkan password.\n\n' +
       'QR Code akan dibuat TANPA kunci (kunci default).\n' +
@@ -955,7 +919,7 @@ function generateSignature() {
 }
 
 /* =====================================================================
-   DOWNLOAD PNG
+   DOWNLOAD PNG — JARAK QR→NAMA = JARAK NAMA→NAMA
    ===================================================================== */
 function downloadPNG() {
   const tanggal = document.getElementById('qrcode').getAttribute('data-tanggal');
@@ -964,6 +928,7 @@ function downloadPNG() {
 
   const nama = document.getElementById('nama').value.trim();
 
+  // ===== Render QR offscreen dengan ukuran asli =====
   const qrRenderCanvas = document.createElement('canvas');
   qrRenderCanvas.width = currentQrSizePx;
   qrRenderCanvas.height = currentQrSizePx;
@@ -986,31 +951,32 @@ function downloadPNG() {
     qrRenderCanvas.getContext('2d').drawImage(qrEl, 0, 0, currentQrSizePx, currentQrSizePx);
   }
 
+  // ===== Parameter ukuran =====
   const qrPx = currentQrSizePx;
   const padding = Math.round(qrPx * 0.06);
-  const nameAreaHeight = Math.round(qrPx * 0.20);
-
-  const canvas = document.getElementById('canvas');
-  canvas.width  = qrPx + padding * 2;
-  canvas.height = qrPx + nameAreaHeight + padding * 2;
-
-  const ctx = canvas.getContext('2d');
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(qrRenderCanvas, padding, padding, qrPx, qrPx);
-
-  const lineY = padding + qrPx + Math.round(padding * 0.6);
-  ctx.strokeStyle = '#000000';
-  ctx.lineWidth = Math.max(2, Math.round(qrPx * 0.006));
-  ctx.beginPath();
-  ctx.moveTo(padding, lineY);
-  ctx.lineTo(canvas.width - padding, lineY);
-  ctx.stroke();
+  const gap = Math.round(qrPx * 0.025);
 
   let fontSize = Math.round(qrPx * 0.075);
   if (nama.length > 24) fontSize = Math.round(qrPx * 0.060);
   if (nama.length > 36) fontSize = Math.round(qrPx * 0.050);
   if (nama.length > 48) fontSize = Math.round(qrPx * 0.042);
+
+  const [line1, line2] = splitNameIntoLines(nama, 30);
+  const lineHeight = fontSize;
+  const hasLine2 = !!line2;
+  const linesCount = hasLine2 ? 2 : 1;
+
+  // ===== Siapkan canvas =====
+  const canvas = document.getElementById('canvas');
+  canvas.width  = qrPx + padding * 2;
+  canvas.height = padding + qrPx + gap + (lineHeight * linesCount) + (hasLine2 ? gap : 0) + padding;
+
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.drawImage(qrRenderCanvas, padding, padding, qrPx, qrPx);
 
   const fontStr = '900 ' + fontSize + 'px "Segoe UI", "Arial Black", Arial, sans-serif';
   ctx.font = fontStr;
@@ -1018,17 +984,16 @@ function downloadPNG() {
   ctx.textBaseline = 'middle';
   ctx.fillStyle = '#000000';
 
-  const [line1, line2] = splitNameIntoLines(nama, 30);
-  const lineHeight = fontSize * 1.25;
-  const nameStartY = lineY + Math.round(padding * 1.4);
+  const qrBottomY = padding + qrPx;
 
-  if (line2) {
-    const line1Y = nameStartY + lineHeight / 2;
-    const line2Y = line1Y + lineHeight;
-    ctx.fillText(line1.toUpperCase(), canvas.width / 2, line1Y);
-    ctx.fillText(line2.toUpperCase(), canvas.width / 2, line2Y);
+  if (hasLine2) {
+    const line1CenterY = qrBottomY + gap + lineHeight / 2;
+    const line2CenterY = line1CenterY + lineHeight + gap;
+    ctx.fillText(line1.toUpperCase(), canvas.width / 2, line1CenterY);
+    ctx.fillText(line2.toUpperCase(), canvas.width / 2, line2CenterY);
   } else {
-    ctx.fillText(line1.toUpperCase(), canvas.width / 2, nameStartY + lineHeight / 2);
+    const line1CenterY = qrBottomY + gap + lineHeight / 2;
+    ctx.fillText(line1.toUpperCase(), canvas.width / 2, line1CenterY);
   }
 
   const dataUrl = canvas.toDataURL('image/png');
