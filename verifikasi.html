@@ -434,6 +434,28 @@
   }
   .batch-item.valid { border-left-color: var(--success); }
   .batch-item.invalid { border-left-color: var(--danger); }
+  .batch-item .result-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .batch-item .result-actions button {
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+    margin: 0 !important;
+  }
+  .batch-summary .result-actions {
+    margin-top: 10px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .batch-summary .result-actions button {
+    font-size: 12px !important;
+    padding: 6px 12px !important;
+    margin: 0 !important;
+  }
 
   /* ============ GENERIC ============ */
   .spinner {
@@ -590,13 +612,12 @@
 /* ============ KONSTANTA ============ */
 const DEFAULT_SECRET = 'DIGITAL-SIGNATURE-DEFAULT-KEY-2024';
 
+/* ============ CACHE BATCH ============ */
+let batchResultsCache = [];
+
 /* =====================================================================
    TEMA — AUTO DARK/LIGHT + SIMPAN PREFERENSI
    Key localStorage: 'theme' dan 'themeManual' — SAMA dengan index.html
-   sehingga preferensi tema konsisten di kedua halaman.
-
-   Catatan: localStorage HANYA menyimpan preferensi tema (setting UI).
-   Tidak ada data user/dokumen yang disimpan.
    ===================================================================== */
 function detectSystemTheme() {
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -762,6 +783,8 @@ function buildResultCard(data, inputSecret) {
   const pesan     = data.pesan     || data.p      || '';
   const ts        = data.ts;
 
+  const payloadStr = JSON.stringify(JSON.stringify({nama, institusi, jabatan, tanggal, pesan, ts, locked: data.locked}));
+
   return `
     <div class="result-card valid">
       <div class="field-row"><span class="field-key">Nama</span><span class="field-value">: ${esc(nama)}</span></div>
@@ -771,15 +794,15 @@ function buildResultCard(data, inputSecret) {
       ${ts ? `<div class="field-row"><span class="field-key">Timestamp</span><span class="field-value">: ${esc(formatTimestamp(ts))}</span></div>` : ''}
       ${pesan ? `<div class="msg-box">💬 <b>Pesan:</b> ${esc(pesan)}</div>` : ''}
       <div class="result-actions">
-        <button class="secondary" onclick="copyResultText(${esc(JSON.stringify(JSON.stringify({nama, institusi, jabatan, tanggal, pesan, ts, locked: data.locked})))});">📋 Copy Hasil</button>
-        <button class="secondary" onclick="downloadResultPDF(${esc(JSON.stringify(JSON.stringify({nama, institusi, jabatan, tanggal, pesan, ts, locked: data.locked})))});">📄 Download PDF</button>
+        <button class="secondary" onclick='copyResultText(${payloadStr});'>📋 Copy Hasil</button>
+        <button class="secondary" onclick='downloadResultPDF(${payloadStr});'>📄 Download PDF</button>
       </div>
     </div>
   `;
 }
 
 /* =====================================================================
-   COPY RESULT
+   COPY RESULT (Single)
    ===================================================================== */
 function copyResultText(payloadJson) {
   try {
@@ -793,8 +816,7 @@ Institusi : ${data.institusi || '-'}
 Jabatan   : ${data.jabatan || '-'}
 Tanggal   : ${data.tanggal || '-'}
 Timestamp : ${data.ts ? formatTimestamp(data.ts) : '-'}
-${data.pesan ? 'Pesan     : ' + data.pesan : ''}
-Diverifikasi: ${formatTimestamp(Date.now())}`;
+${data.pesan ? 'Pesan     : ' + data.pesan + '\n' : ''}Diverifikasi: ${formatTimestamp(Date.now())}`;
 
     navigator.clipboard.writeText(text)
       .then(() => alert('✅ Hasil verifikasi berhasil di-copy.'))
@@ -821,9 +843,9 @@ function fallbackCopy(text) {
 }
 
 /* =====================================================================
-   DOWNLOAD PDF — DESAIN PROFESIONAL
+   DOWNLOAD PDF (Single)
    ===================================================================== */
-function downloadResultPDF(payloadJson) {
+function downloadResultPDF(payloadJson, sourceFilename) {
   try {
     if (!window.jspdf || !window.jspdf.jsPDF) {
       alert('❌ Library PDF belum siap. Cek file jspdf.umd.min.js');
@@ -834,6 +856,7 @@ function downloadResultPDF(payloadJson) {
 
     const data = JSON.parse(payloadJson);
     const locked = typeof data.locked === 'boolean' ? data.locked : false;
+    const sourceLabel = sourceFilename || '';
 
     const PAGE_W = 210;
     const MARGIN = 15;
@@ -875,7 +898,11 @@ function downloadResultPDF(payloadJson) {
 
     doc.setFontSize(8);
     doc.setTextColor(200, 220, 255);
-    doc.text('ID Verifikasi: ' + verifyId, PAGE_W / 2, 36, { align: 'center' });
+    doc.text('ID Verifikasi: ' + verifyId, PAGE_W / 2, 34, { align: 'center' });
+    if (sourceLabel) {
+      doc.setFontSize(7);
+      doc.text('File: ' + sourceLabel, PAGE_W / 2, 39, { align: 'center' });
+    }
 
     /* STATUS BADGE */
     let y = 55;
@@ -1017,7 +1044,6 @@ function downloadResultPDF(payloadJson) {
 
 /* =====================================================================
    TAB 1: DECRYPT MANUAL
-   Password BOLEH KOSONG — akan otomatis pakai kunci default
    ===================================================================== */
 function decryptPayload() {
   const encrypted = document.getElementById('encryptedInput').value.trim();
@@ -1025,7 +1051,6 @@ function decryptPayload() {
   const box = document.getElementById('decryptResult');
   box.innerHTML = '';
 
-  // Hanya cek payload — password kosong DIPERBOLEHKAN (pakai kunci default)
   if (!encrypted) {
     box.innerHTML = '<div class="auth-badge invalid"><div class="auth-badge-icon">⚠️</div><div class="auth-badge-text"><div>PAYLOAD KOSONG</div><div class="auth-badge-sub">Tempel ciphertext atau scan QR</div></div></div>';
     return;
@@ -1230,7 +1255,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
 /* =====================================================================
    TAB 2: PDF
-   Password BOLEH KOSONG — akan otomatis pakai kunci default
    ===================================================================== */
 async function handlePDFFile(event) {
   const file = event.target.files[0];
@@ -1333,7 +1357,6 @@ async function handlePDFFile(event) {
 
 /* =====================================================================
    TAB 3: BATCH MULTI-FILE
-   Password BOLEH KOSONG — akan otomatis pakai kunci default
    ===================================================================== */
 async function handleBatchFiles(event) {
   const files = Array.from(event.target.files || []);
@@ -1447,22 +1470,35 @@ async function extractQRFromPDF(file) {
   return null;
 }
 
+/* =====================================================================
+   RENDER BATCH RESULTS — dengan tombol Copy & PDF per file + global
+   ===================================================================== */
 function renderBatchResults(results) {
   const result = document.getElementById('batchResult');
   const validCount = results.filter(r => r.valid).length;
   const invalidCount = results.length - validCount;
 
+  // Simpan di cache global
+  batchResultsCache = results;
+
+  // Ringkasan + tombol global
   let html = `<div class="batch-summary ${invalidCount === 0 ? 'good' : 'bad'}">
     📊 <b>Ringkasan:</b> ${validCount} valid, ${invalidCount} gagal dari ${results.length} file
+    ${validCount > 0 ? `
+      <div class="result-actions">
+        <button class="secondary" onclick="copyBatchAll();">📋 Copy Semua Hasil</button>
+        <button class="secondary" onclick="downloadBatchAllPDF();">📄 Download PDF Semua</button>
+      </div>
+    ` : ''}
   </div>`;
 
-  results.forEach((r) => {
+  results.forEach((r, idx) => {
     if (r.valid) {
       const d = r.data;
       html += `
         <div class="batch-item valid">
           <b>✅ ${esc(r.filename)}</b>
-          ${d.locked ? ' 🔒' : ' ⚠️'}<br/>
+          ${d.locked ? ' 🔒' : ' ⚠️'}
           <div style="margin-top:6px; font-size:12px; line-height:1.6;">
             <b>Nama</b>      : ${esc(d.nama || '-')}<br/>
             <b>Institusi</b> : ${esc(d.institusi || '-')}<br/>
@@ -1470,6 +1506,10 @@ function renderBatchResults(results) {
             <b>Tanggal</b>   : ${esc(d.tanggal || '-')}<br/>
             ${d.ts ? `<b>Timestamp</b> : ${esc(formatTimestamp(d.ts))}<br/>` : ''}
             ${d.pesan ? `<b>Pesan</b>     : <i>${esc(d.pesan)}</i>` : ''}
+          </div>
+          <div class="result-actions">
+            <button class="secondary" onclick="copyBatchItem(${idx});">📋 Copy Hasil</button>
+            <button class="secondary" onclick="downloadBatchItemPDF(${idx});">📄 Download PDF</button>
           </div>
         </div>
       `;
@@ -1484,6 +1524,303 @@ function renderBatchResults(results) {
   });
 
   result.innerHTML = html;
+}
+
+/* =====================================================================
+   COPY BATCH ITEM (per file)
+   ===================================================================== */
+function copyBatchItem(idx) {
+  const r = batchResultsCache[idx];
+  if (!r || !r.valid) { alert('Data tidak ditemukan.'); return; }
+
+  const d = r.data;
+  const locked = d.locked === true;
+  const text =
+`✅ VERIFIKASI BERHASIL
+File      : ${r.filename}
+Status    : ${locked ? '🔒 Terkunci' : '⚠️ Tidak terkunci'}
+Nama      : ${d.nama || '-'}
+Institusi : ${d.institusi || '-'}
+Jabatan   : ${d.jabatan || '-'}
+Tanggal   : ${d.tanggal || '-'}
+Timestamp : ${d.ts ? formatTimestamp(d.ts) : '-'}
+${d.pesan ? 'Pesan     : ' + d.pesan + '\n' : ''}Diverifikasi: ${formatTimestamp(Date.now())}`;
+
+  navigator.clipboard.writeText(text)
+    .then(() => alert('✅ Hasil verifikasi "' + r.filename + '" berhasil di-copy.'))
+    .catch(() => fallbackCopy(text));
+}
+
+/* =====================================================================
+   COPY BATCH ALL (semua file)
+   ===================================================================== */
+function copyBatchAll() {
+  const validResults = batchResultsCache.filter(r => r.valid);
+  if (!validResults.length) { alert('Tidak ada hasil valid untuk di-copy.'); return; }
+
+  let text = `✅ VERIFIKASI BANYAK FILE\nDiverifikasi: ${formatTimestamp(Date.now())}\nTotal: ${validResults.length} dokumen valid\n`;
+  text += '─'.repeat(50) + '\n\n';
+
+  validResults.forEach((r, i) => {
+    const d = r.data;
+    const locked = d.locked === true;
+    text += `[${i + 1}] ${r.filename}\n`;
+    text += `    Status    : ${locked ? '🔒 Terkunci' : '⚠️ Tidak terkunci'}\n`;
+    text += `    Nama      : ${d.nama || '-'}\n`;
+    text += `    Institusi : ${d.institusi || '-'}\n`;
+    text += `    Jabatan   : ${d.jabatan || '-'}\n`;
+    text += `    Tanggal   : ${d.tanggal || '-'}\n`;
+    text += `    Timestamp : ${d.ts ? formatTimestamp(d.ts) : '-'}\n`;
+    if (d.pesan) text += `    Pesan     : ${d.pesan}\n`;
+    text += '\n';
+  });
+
+  navigator.clipboard.writeText(text)
+    .then(() => alert('✅ Semua hasil (' + validResults.length + ' file) berhasil di-copy.'))
+    .catch(() => fallbackCopy(text));
+}
+
+/* =====================================================================
+   DOWNLOAD PDF BATCH ITEM (per file)
+   ===================================================================== */
+function downloadBatchItemPDF(idx) {
+  const r = batchResultsCache[idx];
+  if (!r || !r.valid) { alert('Data tidak ditemukan.'); return; }
+
+  const d = r.data;
+  const payloadJson = JSON.stringify({
+    nama: d.nama, institusi: d.institusi, jabatan: d.jabatan,
+    tanggal: d.tanggal, pesan: d.pesan, ts: d.ts, locked: d.locked
+  });
+  downloadResultPDF(payloadJson, r.filename);
+}
+
+/* =====================================================================
+   DOWNLOAD PDF BATCH ALL (semua file dalam 1 PDF)
+   ===================================================================== */
+function downloadBatchAllPDF() {
+  const validResults = batchResultsCache.filter(r => r.valid);
+  if (!validResults.length) { alert('Tidak ada hasil valid untuk di-download.'); return; }
+
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('❌ Library PDF belum siap. Cek file jspdf.umd.min.js');
+    return;
+  }
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+    const PAGE_W = 210;
+    const PAGE_H = 297;
+    const MARGIN = 15;
+    const CONTENT_W = PAGE_W - MARGIN * 2;
+
+    const C_PRIMARY = [11, 94, 215];
+    const C_DARK    = [30, 41, 59];
+    const C_GRAY    = [100, 116, 139];
+    const C_LIGHT   = [241, 245, 249];
+    const C_SUCCESS = [22, 163, 74];
+    const C_WARN    = [202, 138, 4];
+    const C_WHITE   = [255, 255, 255];
+
+    const verifyTime = new Date();
+    const verifyId = 'VRFB-' +
+      verifyTime.getFullYear() +
+      String(verifyTime.getMonth() + 1).padStart(2, '0') +
+      String(verifyTime.getDate()).padStart(2, '0') + '-' +
+      String(verifyTime.getHours()).padStart(2, '0') +
+      String(verifyTime.getMinutes()).padStart(2, '0') +
+      String(verifyTime.getSeconds()).padStart(2, '0');
+
+    /* ============ COVER PAGE ============ */
+    doc.setFillColor(...C_PRIMARY);
+    doc.rect(0, 0, PAGE_W, 60, 'F');
+
+    doc.setTextColor(...C_WHITE);
+    doc.setFontSize(24);
+    doc.setFont('helvetica', 'bold');
+    doc.text('BUKTI VERIFIKASI', PAGE_W / 2, 30, { align: 'center' });
+    doc.text('BANYAK DOKUMEN', PAGE_W / 2, 42, { align: 'center' });
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Personal Digital Signature', PAGE_W / 2, 52, { align: 'center' });
+
+    // Ringkasan
+    let y = 80;
+    doc.setTextColor(...C_DARK);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('RINGKASAN', MARGIN, y);
+    y += 3;
+    doc.setDrawColor(...C_PRIMARY);
+    doc.setLineWidth(0.8);
+    doc.line(MARGIN, y, MARGIN + 40, y);
+    y += 10;
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('ID Verifikasi Batch:', MARGIN, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(verifyId, MARGIN + 55, y);
+    y += 7;
+
+    doc.setFont('helvetica', 'normal');
+    doc.text('Total Dokumen Valid:', MARGIN, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(validResults.length) + ' dokumen', MARGIN + 55, y);
+    y += 7;
+
+    doc.setFont('helvetica', 'normal');
+    doc.text('Diverifikasi pada:', MARGIN, y);
+    doc.setFont('helvetica', 'bold');
+    doc.text(formatTimestamp(verifyTime.getTime()), MARGIN + 55, y);
+    y += 15;
+
+    // Daftar file
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DAFTAR DOKUMEN', MARGIN, y);
+    y += 3;
+    doc.setDrawColor(...C_PRIMARY);
+    doc.line(MARGIN, y, MARGIN + 50, y);
+    y += 8;
+
+    validResults.forEach((r, i) => {
+      if (y > PAGE_H - 30) {
+        doc.addPage();
+        y = 30;
+      }
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${i + 1}.`, MARGIN, y);
+      doc.setFont('helvetica', 'normal');
+      const lines = doc.splitTextToSize(r.filename, CONTENT_W - 10);
+      doc.text(lines, MARGIN + 8, y);
+      y += 5 * lines.length + 2;
+    });
+
+    /* ============ DETAIL SETIAP DOKUMEN ============ */
+    validResults.forEach((r, idx) => {
+      doc.addPage();
+      const d = r.data;
+      const locked = d.locked === true;
+
+      // Header kecil
+      doc.setFillColor(...C_PRIMARY);
+      doc.rect(0, 0, PAGE_W, 30, 'F');
+      doc.setTextColor(...C_WHITE);
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.text('DOKUMEN ' + (idx + 1) + ' DARI ' + validResults.length, MARGIN, 13);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      const fileLines = doc.splitTextToSize(r.filename, CONTENT_W);
+      doc.text(fileLines, MARGIN, 21);
+
+      let dy = 42;
+
+      // Badge status
+      const badgeH = 18;
+      if (locked) {
+        doc.setFillColor(...C_SUCCESS);
+        doc.roundedRect(MARGIN, dy, CONTENT_W, badgeH, 3, 3, 'F');
+        doc.setTextColor(...C_WHITE);
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text('OK  ASLI & TERVERIFIKASI', PAGE_W / 2, dy + 7, { align: 'center' });
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Dokumen terkunci dengan password', PAGE_W / 2, dy + 13, { align: 'center' });
+      } else {
+        doc.setFillColor(...C_WARN);
+        doc.roundedRect(MARGIN, dy, CONTENT_W, badgeH, 3, 3, 'F');
+        doc.setTextColor(...C_WHITE);
+        doc.setFontSize(13);
+        doc.setFont('helvetica', 'bold');
+        doc.text('!  TERVERIFIKASI (TIDAK TERKUNCI)', PAGE_W / 2, dy + 7, { align: 'center' });
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.text('Dokumen valid, namun tidak dikunci password', PAGE_W / 2, dy + 13, { align: 'center' });
+      }
+
+      dy += badgeH + 12;
+
+      // Kartu data
+      const fields = [
+        ['Nama', d.nama || '-'],
+        ['Institusi', d.institusi || '-'],
+        ['Jabatan', d.jabatan || '-'],
+        ['Tanggal', d.tanggal || '-'],
+        ['Timestamp', d.ts ? formatTimestamp(d.ts) : '-'],
+      ];
+
+      const rowH = 11;
+      const cardStartY = dy;
+
+      fields.forEach(([key, value], fi) => {
+        if (fi % 2 === 0) {
+          doc.setFillColor(...C_LIGHT);
+          doc.rect(MARGIN, dy, CONTENT_W, rowH, 'F');
+        }
+        doc.setTextColor(...C_GRAY);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.text(key.toUpperCase(), MARGIN + 3, dy + 5);
+        doc.setTextColor(...C_DARK);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(String(value), MARGIN + 3, dy + 9);
+        dy += rowH;
+      });
+
+      doc.setDrawColor(...C_PRIMARY);
+      doc.setLineWidth(0.4);
+      doc.rect(MARGIN, cardStartY, CONTENT_W, rowH * fields.length);
+
+      // Kotak pesan
+      if (d.pesan) {
+        dy += 10;
+        doc.setTextColor(...C_DARK);
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('PESAN', MARGIN, dy);
+        dy += 6;
+
+        const pesanLines = doc.splitTextToSize(String(d.pesan), CONTENT_W - 16);
+        const pesanBoxH = Math.max(18, pesanLines.length * 6 + 12);
+
+        doc.setFillColor(232, 244, 255);
+        doc.roundedRect(MARGIN, dy, CONTENT_W, pesanBoxH, 3, 3, 'F');
+        doc.setFillColor(...C_PRIMARY);
+        doc.rect(MARGIN, dy, 1.5, pesanBoxH, 'F');
+        doc.setTextColor(...C_DARK);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'italic');
+        doc.text(pesanLines, MARGIN + 8, dy + 8);
+        dy += pesanBoxH;
+      }
+
+      // Footer halaman
+      doc.setDrawColor(...C_PRIMARY);
+      doc.setLineWidth(0.5);
+      doc.line(MARGIN, PAGE_H - 20, PAGE_W - MARGIN, PAGE_H - 20);
+      doc.setTextColor(...C_GRAY);
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Dokumen ' + (idx + 1) + ' dari ' + validResults.length + ' | ID: ' + verifyId, MARGIN, PAGE_H - 14);
+      doc.text('Halaman ' + doc.getNumberOfPages(), PAGE_W - MARGIN, PAGE_H - 14, { align: 'right' });
+    });
+
+    /* ============ SAVE ============ */
+    const filename = 'verifikasi-batch-' + verifyId + '.pdf';
+    doc.save(filename);
+
+  } catch (e) {
+    console.error(e);
+    alert('Gagal membuat PDF: ' + e.message);
+  }
 }
 
 /* =====================================================================
