@@ -505,9 +505,9 @@
       <textarea id="encryptedInput" rows="5" placeholder="Tempel ciphertext AES di sini..."></textarea>
     </div>
     <div class="row">
-      <label>🔑 Password</label>
+      <label>🔑 Password <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(kosongkan jika dokumen tidak dikunci)</span></label>
       <div class="pw-wrap">
-        <input type="password" id="secretDecrypt" placeholder="Masukkan password..." />
+        <input type="password" id="secretDecrypt" placeholder="Masukkan password atau kosongkan..." />
         <button type="button" class="pw-toggle" onclick="togglePassword('secretDecrypt', this)" title="Lihat/Sembunyikan password">👁️</button>
       </div>
     </div>
@@ -535,9 +535,9 @@
       <input type="file" id="pdfFile" accept="application/pdf,.pdf" style="display:none" onchange="handlePDFFile(event)" />
     </div>
     <div class="row">
-      <label>🔑 Password</label>
+      <label>🔑 Password <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(kosongkan jika dokumen tidak dikunci)</span></label>
       <div class="pw-wrap">
-        <input type="password" id="secretDecryptPdf" placeholder="Masukkan password..." />
+        <input type="password" id="secretDecryptPdf" placeholder="Masukkan password atau kosongkan..." />
         <button type="button" class="pw-toggle" onclick="togglePassword('secretDecryptPdf', this)" title="Lihat/Sembunyikan password">👁️</button>
       </div>
     </div>
@@ -558,9 +558,9 @@
       <input type="file" id="batchFile" multiple accept="image/*,application/pdf,.pdf" style="display:none" onchange="handleBatchFiles(event)" />
     </div>
     <div class="row">
-      <label>🔑 Password (untuk semua file)</label>
+      <label>🔑 Password (untuk semua file) <span style="font-weight:400;color:var(--text-muted);font-size:12px;">(kosongkan jika tidak dikunci)</span></label>
       <div class="pw-wrap">
-        <input type="password" id="secretBatch" placeholder="Masukkan password yang sama..." />
+        <input type="password" id="secretBatch" placeholder="Masukkan password yang sama atau kosongkan..." />
         <button type="button" class="pw-toggle" onclick="togglePassword('secretBatch', this)" title="Lihat/Sembunyikan password">👁️</button>
       </div>
     </div>
@@ -1017,6 +1017,7 @@ function downloadResultPDF(payloadJson) {
 
 /* =====================================================================
    TAB 1: DECRYPT MANUAL
+   Password BOLEH KOSONG — akan otomatis pakai kunci default
    ===================================================================== */
 function decryptPayload() {
   const encrypted = document.getElementById('encryptedInput').value.trim();
@@ -1024,12 +1025,9 @@ function decryptPayload() {
   const box = document.getElementById('decryptResult');
   box.innerHTML = '';
 
+  // Hanya cek payload — password kosong DIPERBOLEHKAN (pakai kunci default)
   if (!encrypted) {
     box.innerHTML = '<div class="auth-badge invalid"><div class="auth-badge-icon">⚠️</div><div class="auth-badge-text"><div>PAYLOAD KOSONG</div><div class="auth-badge-sub">Tempel ciphertext atau scan QR</div></div></div>';
-    return;
-  }
-  if (!secret) {
-    box.innerHTML = '<div class="auth-badge invalid"><div class="auth-badge-icon">⚠️</div><div class="auth-badge-text"><div>PASSWORD KOSONG</div><div class="auth-badge-sub">Masukkan password untuk verifikasi</div></div></div>';
     return;
   }
 
@@ -1232,6 +1230,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 /* =====================================================================
    TAB 2: PDF
+   Password BOLEH KOSONG — akan otomatis pakai kunci default
    ===================================================================== */
 async function handlePDFFile(event) {
   const file = event.target.files[0];
@@ -1334,6 +1333,7 @@ async function handlePDFFile(event) {
 
 /* =====================================================================
    TAB 3: BATCH MULTI-FILE
+   Password BOLEH KOSONG — akan otomatis pakai kunci default
    ===================================================================== */
 async function handleBatchFiles(event) {
   const files = Array.from(event.target.files || []);
