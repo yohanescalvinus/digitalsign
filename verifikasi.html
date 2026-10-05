@@ -125,6 +125,43 @@
   button.success:hover { background: var(--success-hover); }
   button:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  /* ============ PASSWORD TOGGLE ============ */
+  .pw-wrap {
+    position: relative;
+    display: block;
+    width: 100%;
+  }
+  .pw-wrap input {
+    padding-right: 46px;
+  }
+  .pw-toggle {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    font-size: 18px;
+    user-select: none;
+    color: var(--text-muted);
+    background: transparent;
+    padding: 6px 10px;
+    border: none;
+    margin: 0;
+    width: auto;
+    height: auto;
+    z-index: 10;
+    pointer-events: auto;
+    border-radius: 4px;
+    line-height: 1;
+    box-shadow: none;
+    transition: background 0.15s;
+  }
+  .pw-toggle:hover {
+    background: rgba(11, 94, 215, 0.1);
+    color: var(--primary);
+  }
+  .pw-toggle:active { transform: translateY(-50%) scale(0.92); }
+
   /* ============ TABS ============ */
   .tabs {
     display: flex;
@@ -469,7 +506,10 @@
     </div>
     <div class="row">
       <label>🔑 Password</label>
-      <input type="password" id="secretDecrypt" placeholder="Masukkan password..." />
+      <div class="pw-wrap">
+        <input type="password" id="secretDecrypt" placeholder="Masukkan password..." />
+        <button type="button" class="pw-toggle" onclick="togglePassword('secretDecrypt', this)" title="Lihat/Sembunyikan password">👁️</button>
+      </div>
     </div>
 
     <button class="success" onclick="decryptPayload()">🔓 Verifikasi</button>
@@ -496,7 +536,10 @@
     </div>
     <div class="row">
       <label>🔑 Password</label>
-      <input type="password" id="secretDecryptPdf" placeholder="Masukkan password..." />
+      <div class="pw-wrap">
+        <input type="password" id="secretDecryptPdf" placeholder="Masukkan password..." />
+        <button type="button" class="pw-toggle" onclick="togglePassword('secretDecryptPdf', this)" title="Lihat/Sembunyikan password">👁️</button>
+      </div>
     </div>
     <div id="pdfPreview"></div>
     <div id="pdfInfo" style="font-size:12px; color:var(--text-muted); margin-top:8px; text-align:center;"></div>
@@ -516,7 +559,10 @@
     </div>
     <div class="row">
       <label>🔑 Password (untuk semua file)</label>
-      <input type="password" id="secretBatch" placeholder="Masukkan password yang sama..." />
+      <div class="pw-wrap">
+        <input type="password" id="secretBatch" placeholder="Masukkan password yang sama..." />
+        <button type="button" class="pw-toggle" onclick="togglePassword('secretBatch', this)" title="Lihat/Sembunyikan password">👁️</button>
+      </div>
     </div>
     <div id="batchResult"></div>
   </div>
@@ -545,7 +591,9 @@
 const DEFAULT_SECRET = 'DIGITAL-SIGNATURE-DEFAULT-KEY-2024';
 
 /* =====================================================================
-   TEMA — AUTO DARK/LIGHT
+   TEMA — AUTO DARK/LIGHT + SIMPAN PREFERENSI
+   Catatan: localStorage HANYA menyimpan preferensi tema (setting UI).
+   Tidak ada data user/dokumen yang disimpan.
    ===================================================================== */
 function detectSystemTheme() {
   if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -560,10 +608,26 @@ function applyTheme(theme) {
 }
 function toggleTheme() {
   const cur = document.documentElement.getAttribute('data-theme') || 'light';
-  applyTheme(cur === 'dark' ? 'light' : 'dark');
+  const newTheme = cur === 'dark' ? 'light' : 'dark';
+  applyTheme(newTheme);
+  try {
+    localStorage.setItem('verify_theme', newTheme);
+    localStorage.setItem('verify_themeManual', 'true');
+  } catch (e) { /* silent */ }
 }
 (function initTheme() {
-  const theme = detectSystemTheme();
+  let theme;
+  try {
+    const manual = localStorage.getItem('verify_themeManual');
+    const saved = localStorage.getItem('verify_theme');
+    if (manual === 'true' && saved) {
+      theme = saved;
+    } else {
+      theme = detectSystemTheme();
+    }
+  } catch (e) {
+    theme = detectSystemTheme();
+  }
   document.documentElement.setAttribute('data-theme', theme);
   window.addEventListener('DOMContentLoaded', () => {
     const btn = document.getElementById('themeBtn');
@@ -571,10 +635,32 @@ function toggleTheme() {
   });
   if (window.matchMedia) {
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-      applyTheme(e.matches ? 'dark' : 'light');
+      try {
+        const isManual = localStorage.getItem('verify_themeManual') === 'true';
+        if (!isManual) applyTheme(e.matches ? 'dark' : 'light');
+      } catch (err) {
+        applyTheme(e.matches ? 'dark' : 'light');
+      }
     });
   }
 })();
+
+/* =====================================================================
+   PASSWORD VISIBILITY TOGGLE
+   ===================================================================== */
+function togglePassword(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.textContent = '🙈';
+    btn.title = 'Sembunyikan password';
+  } else {
+    input.type = 'password';
+    btn.textContent = '👁️';
+    btn.title = 'Lihat password';
+  }
+}
 
 /* =====================================================================
    TABS
@@ -748,7 +834,6 @@ function downloadResultPDF(payloadJson) {
     const MARGIN = 15;
     const CONTENT_W = PAGE_W - MARGIN * 2;
 
-    /* ============ WARNA ============ */
     const C_PRIMARY = [11, 94, 215];
     const C_DARK    = [30, 41, 59];
     const C_GRAY    = [100, 116, 139];
@@ -757,7 +842,7 @@ function downloadResultPDF(payloadJson) {
     const C_WARN    = [202, 138, 4];
     const C_WHITE   = [255, 255, 255];
 
-    /* ============ HEADER ============ */
+    /* HEADER */
     doc.setFillColor(...C_PRIMARY);
     doc.rect(0, 0, PAGE_W, 42, 'F');
 
@@ -787,7 +872,7 @@ function downloadResultPDF(payloadJson) {
     doc.setTextColor(200, 220, 255);
     doc.text('ID Verifikasi: ' + verifyId, PAGE_W / 2, 36, { align: 'center' });
 
-    /* ============ STATUS BADGE ============ */
+    /* STATUS BADGE */
     let y = 55;
     const badgeH = 20;
 
@@ -797,7 +882,7 @@ function downloadResultPDF(payloadJson) {
       doc.setTextColor(...C_WHITE);
       doc.setFontSize(15);
       doc.setFont('helvetica', 'bold');
-      doc.text('✓  DOKUMEN ASLI & TERVERIFIKASI', PAGE_W / 2, y + 9, { align: 'center' });
+      doc.text('OK  DOKUMEN ASLI & TERVERIFIKASI', PAGE_W / 2, y + 9, { align: 'center' });
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.text('Dokumen terkunci dengan password - keaslian terjamin', PAGE_W / 2, y + 15, { align: 'center' });
@@ -807,13 +892,13 @@ function downloadResultPDF(payloadJson) {
       doc.setTextColor(...C_WHITE);
       doc.setFontSize(15);
       doc.setFont('helvetica', 'bold');
-      doc.text('⚠  TERVERIFIKASI (TIDAK TERKUNCI)', PAGE_W / 2, y + 9, { align: 'center' });
+      doc.text('!  TERVERIFIKASI (TIDAK TERKUNCI)', PAGE_W / 2, y + 9, { align: 'center' });
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
       doc.text('Dokumen valid, namun tidak dikunci dengan password', PAGE_W / 2, y + 15, { align: 'center' });
     }
 
-    /* ============ KARTU DATA ============ */
+    /* KARTU DATA */
     y += badgeH + 12;
 
     doc.setTextColor(...C_DARK);
@@ -861,7 +946,7 @@ function downloadResultPDF(payloadJson) {
     doc.setLineWidth(0.4);
     doc.rect(MARGIN, cardStartY, CONTENT_W, rowH * fields.length);
 
-    /* ============ KOTAK PESAN ============ */
+    /* KOTAK PESAN */
     if (data.pesan) {
       y += 10;
 
@@ -893,19 +978,7 @@ function downloadResultPDF(payloadJson) {
       y += pesanBoxH;
     }
 
-    /* ============ WATERMARK ============ */
-    if (doc.GState) {
-      doc.setGState(new doc.GState({ opacity: 0.06 }));
-    }
-    doc.setTextColor(...C_DARK);
-    doc.setFontSize(80);
-    doc.setFont('helvetica', 'bold');
-    doc.text('VERIFIED', PAGE_W / 2, 180, { align: 'center', angle: 45 });
-    if (doc.GState) {
-      doc.setGState(new doc.GState({ opacity: 1 }));
-    }
-
-    /* ============ FOOTER ============ */
+    /* FOOTER */
     const footerY = 260;
     doc.setDrawColor(...C_PRIMARY);
     doc.setLineWidth(0.5);
@@ -928,7 +1001,6 @@ function downloadResultPDF(payloadJson) {
     doc.text('Dokumen ini dihasilkan otomatis oleh sistem.', PAGE_W - MARGIN, footerY + 11, { align: 'right' });
     doc.text('Tidak memerlukan tanda tangan basah.', PAGE_W - MARGIN, footerY + 16, { align: 'right' });
 
-    /* ============ SAVE ============ */
     const filename = 'verifikasi-' + verifyId + '.pdf';
     doc.save(filename);
 
