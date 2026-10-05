@@ -730,7 +730,7 @@ function fallbackCopy(text) {
 }
 
 /* =====================================================================
-   DOWNLOAD PDF
+   DOWNLOAD PDF — DESAIN PROFESIONAL
    ===================================================================== */
 function downloadResultPDF(payloadJson) {
   try {
@@ -744,35 +744,89 @@ function downloadResultPDF(payloadJson) {
     const data = JSON.parse(payloadJson);
     const locked = typeof data.locked === 'boolean' ? data.locked : false;
 
-    // Header
-    doc.setFillColor(11, 94, 215);
-    doc.rect(0, 0, 210, 30, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(18);
+    const PAGE_W = 210;
+    const MARGIN = 15;
+    const CONTENT_W = PAGE_W - MARGIN * 2;
+
+    /* ============ WARNA ============ */
+    const C_PRIMARY = [11, 94, 215];
+    const C_DARK    = [30, 41, 59];
+    const C_GRAY    = [100, 116, 139];
+    const C_LIGHT   = [241, 245, 249];
+    const C_SUCCESS = [22, 163, 74];
+    const C_WARN    = [202, 138, 4];
+    const C_WHITE   = [255, 255, 255];
+
+    /* ============ HEADER ============ */
+    doc.setFillColor(...C_PRIMARY);
+    doc.rect(0, 0, PAGE_W, 42, 'F');
+
+    doc.setTextColor(...C_WHITE);
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('BUKTI VERIFIKASI DIGITAL', 105, 15, { align: 'center' });
+    doc.text('PERSONAL DIGITAL SIGNATURE', PAGE_W / 2, 16, { align: 'center' });
+
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text('Personal Digital Signature', 105, 23, { align: 'center' });
+    doc.text('Bukti Verifikasi Dokumen Elektronik', PAGE_W / 2, 24, { align: 'center' });
 
-    // Status badge
-    doc.setFillColor(locked ? 25 : 255, locked ? 135 : 193, locked ? 84 : 7);
-    doc.rect(15, 45, 180, 15, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(13);
+    doc.setDrawColor(255, 255, 255);
+    doc.setLineWidth(0.3);
+    doc.line(MARGIN, 30, PAGE_W - MARGIN, 30);
+
+    const verifyTime = new Date();
+    const verifyId = 'VRF-' +
+      verifyTime.getFullYear() +
+      String(verifyTime.getMonth() + 1).padStart(2, '0') +
+      String(verifyTime.getDate()).padStart(2, '0') + '-' +
+      String(verifyTime.getHours()).padStart(2, '0') +
+      String(verifyTime.getMinutes()).padStart(2, '0') +
+      String(verifyTime.getSeconds()).padStart(2, '0');
+
+    doc.setFontSize(8);
+    doc.setTextColor(200, 220, 255);
+    doc.text('ID Verifikasi: ' + verifyId, PAGE_W / 2, 36, { align: 'center' });
+
+    /* ============ STATUS BADGE ============ */
+    let y = 55;
+    const badgeH = 20;
+
+    if (locked) {
+      doc.setFillColor(...C_SUCCESS);
+      doc.roundedRect(MARGIN, y, CONTENT_W, badgeH, 3, 3, 'F');
+      doc.setTextColor(...C_WHITE);
+      doc.setFontSize(15);
+      doc.setFont('helvetica', 'bold');
+      doc.text('✓  DOKUMEN ASLI & TERVERIFIKASI', PAGE_W / 2, y + 9, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Dokumen terkunci dengan password - keaslian terjamin', PAGE_W / 2, y + 15, { align: 'center' });
+    } else {
+      doc.setFillColor(...C_WARN);
+      doc.roundedRect(MARGIN, y, CONTENT_W, badgeH, 3, 3, 'F');
+      doc.setTextColor(...C_WHITE);
+      doc.setFontSize(15);
+      doc.setFont('helvetica', 'bold');
+      doc.text('⚠  TERVERIFIKASI (TIDAK TERKUNCI)', PAGE_W / 2, y + 9, { align: 'center' });
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text('Dokumen valid, namun tidak dikunci dengan password', PAGE_W / 2, y + 15, { align: 'center' });
+    }
+
+    /* ============ KARTU DATA ============ */
+    y += badgeH + 12;
+
+    doc.setTextColor(...C_DARK);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    const statusText = locked
-      ? '✓ TERVERIFIKASI - DOKUMEN TERKUNCI'
-      : '⚠ TERVERIFIKASI - TIDAK TERKUNCI';
-    doc.text(statusText, 105, 55, { align: 'center' });
+    doc.text('INFORMASI PENANDA TANGAN', MARGIN, y);
+    y += 3;
 
-    // Data
-    doc.setTextColor(40, 40, 40);
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
+    doc.setDrawColor(...C_PRIMARY);
+    doc.setLineWidth(0.8);
+    doc.line(MARGIN, y, MARGIN + 60, y);
+    y += 6;
 
-    let y = 75;
-    const lineHeight = 8;
     const fields = [
       ['Nama', data.nama || '-'],
       ['Institusi', data.institusi || '-'],
@@ -781,44 +835,101 @@ function downloadResultPDF(payloadJson) {
       ['Timestamp', data.ts ? formatTimestamp(data.ts) : '-'],
     ];
 
-    fields.forEach(([key, value]) => {
+    const cardStartY = y;
+    const rowH = 12;
+
+    fields.forEach(([key, value], idx) => {
+      if (idx % 2 === 0) {
+        doc.setFillColor(...C_LIGHT);
+        doc.rect(MARGIN, y, CONTENT_W, rowH, 'F');
+      }
+
+      doc.setTextColor(...C_GRAY);
+      doc.setFontSize(8);
       doc.setFont('helvetica', 'bold');
-      doc.text(key + ':', 20, y);
+      doc.text(key.toUpperCase(), MARGIN + 3, y + 5);
+
+      doc.setTextColor(...C_DARK);
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
-      const lines = doc.splitTextToSize(value, 130);
-      doc.text(lines, 55, y);
-      y += lineHeight * lines.length;
+      doc.text(String(value), MARGIN + 3, y + 10);
+
+      y += rowH;
     });
 
+    doc.setDrawColor(...C_PRIMARY);
+    doc.setLineWidth(0.4);
+    doc.rect(MARGIN, cardStartY, CONTENT_W, rowH * fields.length);
+
+    /* ============ KOTAK PESAN ============ */
     if (data.pesan) {
-      y += 4;
-      doc.setDrawColor(200, 200, 200);
-      doc.line(20, y, 190, y);
-      y += 6;
+      y += 10;
+
+      doc.setTextColor(...C_DARK);
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text('Pesan:', 20, y);
+      doc.text('PESAN', MARGIN, y);
+      y += 3;
+      doc.setDrawColor(...C_PRIMARY);
+      doc.setLineWidth(0.8);
+      doc.line(MARGIN, y, MARGIN + 30, y);
+      y += 6;
+
+      const pesanText = String(data.pesan);
+      const pesanLines = doc.splitTextToSize(pesanText, CONTENT_W - 16);
+      const pesanBoxH = Math.max(20, pesanLines.length * 6 + 14);
+
+      doc.setFillColor(232, 244, 255);
+      doc.roundedRect(MARGIN, y, CONTENT_W, pesanBoxH, 3, 3, 'F');
+
+      doc.setFillColor(...C_PRIMARY);
+      doc.rect(MARGIN, y, 1.5, pesanBoxH, 'F');
+
+      doc.setTextColor(...C_DARK);
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'italic');
-      const pesanLines = doc.splitTextToSize(data.pesan, 160);
-      doc.text(pesanLines, 20, y + lineHeight);
-      y += lineHeight * (pesanLines.length + 1);
+      doc.text(pesanLines, MARGIN + 8, y + 11);
+
+      y += pesanBoxH;
     }
 
-    // Footer
-    y += 10;
-    doc.setDrawColor(11, 94, 215);
+    /* ============ WATERMARK ============ */
+    if (doc.GState) {
+      doc.setGState(new doc.GState({ opacity: 0.06 }));
+    }
+    doc.setTextColor(...C_DARK);
+    doc.setFontSize(80);
+    doc.setFont('helvetica', 'bold');
+    doc.text('VERIFIED', PAGE_W / 2, 180, { align: 'center', angle: 45 });
+    if (doc.GState) {
+      doc.setGState(new doc.GState({ opacity: 1 }));
+    }
+
+    /* ============ FOOTER ============ */
+    const footerY = 260;
+    doc.setDrawColor(...C_PRIMARY);
     doc.setLineWidth(0.5);
-    doc.line(20, y, 190, y);
-    y += 6;
+    doc.line(MARGIN, footerY, PAGE_W - MARGIN, footerY);
 
-    doc.setFontSize(9);
+    doc.setTextColor(...C_GRAY);
+    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 100, 100);
-    doc.text('Diverifikasi pada: ' + formatTimestamp(Date.now()), 20, y);
-    y += 5;
-    doc.text('Catatan: Bukti verifikasi ini dihasilkan otomatis oleh aplikasi Personal Digital Signature.', 20, y);
+    doc.text('Diverifikasi pada: ' + formatTimestamp(verifyTime.getTime()), MARGIN, footerY + 6);
+    doc.text('Aplikasi: Personal Digital Signature', MARGIN, footerY + 11);
+    doc.text('Metode: AES-256 (Advanced Encryption Standard)', MARGIN, footerY + 16);
 
-    // Save
-    const filename = 'verifikasi-' + new Date().toISOString().slice(0, 10) + '.pdf';
+    doc.setTextColor(...C_DARK);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text('CATATAN:', PAGE_W - MARGIN, footerY + 6, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...C_GRAY);
+    doc.text('Dokumen ini dihasilkan otomatis oleh sistem.', PAGE_W - MARGIN, footerY + 11, { align: 'right' });
+    doc.text('Tidak memerlukan tanda tangan basah.', PAGE_W - MARGIN, footerY + 16, { align: 'right' });
+
+    /* ============ SAVE ============ */
+    const filename = 'verifikasi-' + verifyId + '.pdf';
     doc.save(filename);
 
   } catch (e) {
@@ -989,14 +1100,13 @@ function closeCamera() {
 }
 
 /* =====================================================================
-   TAB 2: PDF
+   INIT
    ===================================================================== */
 window.addEventListener('DOMContentLoaded', () => {
   if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
   }
 
-  // Drag & drop PDF
   const drop = document.getElementById('pdfDrop');
   if (drop) {
     ['dragenter', 'dragover'].forEach(ev => {
@@ -1011,7 +1121,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Drag & drop batch
   const batchDrop = document.getElementById('batchDrop');
   if (batchDrop) {
     ['dragenter', 'dragover'].forEach(ev => {
@@ -1026,7 +1135,6 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Check libraries
   const status = document.getElementById('status');
   const checks = [
     { name: 'CryptoJS', ok: typeof CryptoJS !== 'undefined' },
@@ -1045,6 +1153,9 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+/* =====================================================================
+   TAB 2: PDF
+   ===================================================================== */
 async function handlePDFFile(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -1268,7 +1379,7 @@ function renderBatchResults(results) {
     📊 <b>Ringkasan:</b> ${validCount} valid, ${invalidCount} gagal dari ${results.length} file
   </div>`;
 
-  results.forEach((r, i) => {
+  results.forEach((r) => {
     if (r.valid) {
       const d = r.data;
       html += `
@@ -1299,7 +1410,7 @@ function renderBatchResults(results) {
 }
 
 /* =====================================================================
-   CLEANUP saat halaman di-close
+   CLEANUP
    ===================================================================== */
 window.addEventListener('beforeunload', () => {
   if (cameraStream) {
